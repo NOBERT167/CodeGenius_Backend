@@ -1,0 +1,179 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+using Latest_Staff_Portal.Models;
+using Latest_Staff_Portal.ViewModel;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
+namespace Latest_Staff_Portal.Controllers
+{
+    public class {{ controller_name }} : Controller
+    {
+        public ActionResult {{ page_name }}()
+        {
+            try
+            {
+                if (Session["Username"] == null)
+                    return RedirectToAction("Login", "Login");
+                return View();
+            }
+            catch (Exception ex)
+            {
+                var erroMsg = new Error();
+                erroMsg.Message = ex.Message;
+                return View("~/Views/Common/ErrorMessange.cshtml", erroMsg);
+            }
+        }
+
+        public PartialViewResult {{ page_name }}List()
+        {
+            try
+            {
+                var employee = Session["EmployeeData"] as EmployeeView;
+                // Auto-detected user filter fields: {{ user_filter_fields|map(attribute='original_name')|join(', ') }}
+                var userId = employee?.UserID;
+                var StaffNo = Session["Username"].ToString();
+
+                // Choose one of the following filters and adjust as needed
+                string filter = "";
+                {% for field in user_filter_fields %}
+                {% if loop.first %}
+                // Using {{ field.original_name }} for filtering - adjust if needed
+                filter = "{{ field.original_name }} eq '" + ({% if field.original_name == 'Created_By' or field.original_name == 'User_ID' %}userId{% else %}StaffNo{% endif %}) + "'";
+                {% endif %}
+                {% endfor %}
+
+                // If no user filter fields detected, show all records for the current user context
+                if (string.IsNullOrEmpty(filter)) {
+                    filter = "1 eq 1";
+                }
+
+                var rsrceReq = $"{{ entity_name }}?$filter={filter}&$format=json";
+                var httpResponse = Credentials.GetOdataData(rsrceReq);
+
+                using var streamReader = new StreamReader(httpResponse.GetResponseStream());
+                var result = streamReader.ReadToEnd();
+
+                var odataResponse = JsonConvert.DeserializeObject<ODataResponse<{{ model_name }}>>(result);
+                var data = odataResponse?.Value ?? [];
+
+                return PartialView("PartialViews/{{ page_name }}List", data);
+            }
+            catch (Exception ex)
+            {
+                // ... error handling ...
+            }
+        }
+
+        public ActionResult {{ page_name }}DocumentView(string code)
+        {
+            try
+            {
+                {% if primary_key %}
+                var rsrceReq = $"{{ entity_name }}?$filter={{ primary_key.original_name }} eq '{code}'&$format=json";
+                {% else %}
+                // WARNING: No primary key detected, using 'No' as default
+                var rsrceReq = $"{{ entity_name }}?$filter=No eq '{code}'&$format=json";
+                {% endif %}
+                var httpResponse = Credentials.GetOdataData(rsrceReq);
+                using var streamReader = new StreamReader(httpResponse.GetResponseStream());
+                var result = streamReader.ReadToEnd();
+                var odataResponse = JsonConvert.DeserializeObject<ODataResponse<{{ model_name }}>>(result);
+                var document = odataResponse?.Value?.FirstOrDefault();
+
+                if (document == null)
+                {
+                    throw new Exception("Document not found");
+                }
+
+                return View("{{ page_name }}DocumentView", document);
+            }
+            catch (Exception ex)
+            {
+                var erroMsg = new Error();
+                erroMsg.Message = ex.Message.Replace("'", "");
+                return View("~/Views/Common/ErrorMessange.cshtml", erroMsg);
+            }
+        }
+
+        // TODO: Replace Credentials.ObjNav with your actual Business Central function
+        public JsonResult Submit{{ page_name }}ApprovalRequest(string docNo)
+        {
+            try
+            {
+                var employee = Session["EmployeeData"] as EmployeeView;
+                var UserID = employee?.UserID;
+
+                // REPLACE WITH YOUR BUSINESS CENTRAL FUNCTION:
+                // Credentials.ObjNav.Send{{ page_name }}ForApproval(docNo, UserID);
+                // Credentials.ObjNav.UpdateApprovalEntrySenderID(57000, docNo, UserID);
+
+                return Json(new { message = "Document submitted for approval successfully!", success = true },
+                    JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { message = ex.Message.Replace("'", ""), success = false },
+                    JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // TODO: Replace Credentials.ObjNav with your actual Business Central function
+        public JsonResult Cancel{{ page_name }}ApprovalRequest(string docNo)
+        {
+            try
+            {
+                var employee = Session["EmployeeData"] as EmployeeView;
+                var UserID = employee?.UserID;
+
+                if (string.IsNullOrEmpty(docNo))
+                {
+                    return Json(new { message = "Document Number is required", success = false },
+                        JsonRequestBehavior.AllowGet);
+                }
+
+                // REPLACE WITH YOUR BUSINESS CENTRAL FUNCTION:
+                // Credentials.ObjNav.FnCancel{{ page_name }}Approval(docNo, UserID);
+
+                return Json(new { message = "Approval Request cancelled successfully", success = true },
+                    JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { message = ex.Message.Replace("'", ""), success = false },
+                    JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // LINES SECTION - UNCOMMENT AND IMPLEMENT WHEN LINES ARE NEEDED
+        /*
+        public PartialViewResult {{ page_name }}Lines(string headerNo, string status)
+        {
+            try
+            {
+                ViewBag.Status = status;
+                var rsrceReq = $"{{ entity_name }}Lines?$filter=Document_No eq '{headerNo}'&$format=json";
+                var httpResponse = Credentials.GetOdataData(rsrceReq);
+
+                using var streamReader = new StreamReader(httpResponse.GetResponseStream());
+                var result = streamReader.ReadToEnd();
+
+                var odataResponse = JsonConvert.DeserializeObject<ODataResponse<{{ page_name }}LineModel>>(result);
+                var lines = odataResponse?.Value ?? [];
+
+                return PartialView("PartialViews/{{ page_name }}Lines", lines);
+            }
+            catch (Exception ex)
+            {
+                var erroMsg = new Error();
+                erroMsg.Message = ex.Message.Replace("'", "");
+                return PartialView("~/Views/Shared/Partial Views/ErroMessangeView.cshtml", erroMsg);
+            }
+        }
+        */
+    }
+}

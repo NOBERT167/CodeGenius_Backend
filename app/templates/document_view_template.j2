@@ -1,0 +1,202 @@
+@model {{ model_name }}
+
+@{
+    ViewBag.Title = "{{ page_name }}DocumentView";
+    Layout = "~/Views/Shared/Sitemaster.cshtml";
+}
+
+<div class="page-header">
+    <div class="row">
+        <div class="col-sm-12">
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item"><a href="#" onclick="{{ page_name }}Link();">{{ page_name }}</a></li>
+                <li class="breadcrumb-item active">{{ page_name }} Document('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}')</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+@* //////////////////////////////Modal///////////////////////////////////////// *@
+<div id="myModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mt-0" id="myModalLabel">
+                    <label id="labelF"></label>
+                </h5>
+                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modalBody">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary waves-effect" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+@*//////////////////////Modal////////////////////////////*@
+<div class="modal fade" id="myModalUnits" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content bg-white">
+            <div class="modal-header">
+                <h4 class="modal-title"></h4>
+                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modalBodyUnits">
+                <iframe id="iframe" style="width:100%;height:450px"></iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger waves-effect " data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="card">
+    <div class="card-body">
+        <div style="text-align:right">
+            @if (Model.Status == "Open")
+            {
+                <button class="action-buttons" onclick="ViewApprovalTrail('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
+                    <i class="fas fa-project-diagram menu-icon"></i> Approval Trail
+                </button>
+                <button class="action-buttons" onclick="SendDocApprovalRequest('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
+                    <i class="fas fa-paper-plane" aria-hidden="true"></i> Send Approval Request
+                </button>
+            }
+            else
+            {
+                <button class="btn btn-danger" onclick="CancelDocApprovalRequest('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
+                    <i class="fas fa-times menu-icon"></i> Cancel Approval Request
+                </button>
+            }
+            <button class="action-buttons" onclick="ViewDocComments('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
+                <i class="fa fa-list-ol" aria-hidden="true"></i> Comments
+            </button>
+
+        </div>
+        <hr />
+
+        <div class="row">
+            {% for prop in properties %}
+            <div class="col-md-6">
+                <div class="form-group">
+                    @Html.Label("{{ prop.csharp_name }}", htmlAttributes: new { @class = "control-label col-md-12" })
+                    @Html.TextBoxFor(m => m.{{ prop.csharp_name }}, new { @class = "form-control", @readonly = "readonly", @style = "background-color:var(--light-gray)" })
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div id="div{{ page_name }}Lines">
+            <hr style="border:1px solid black" />
+            <b>{{ page_name }} Lines</b>
+            <hr />
+            <div id="divLines"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="myModal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mt-0" id="myModalLabel"><label id="labelF"></label></h5>
+                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="modalBody">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary waves-effect" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/assets/js/ShowProgression.js"></script>
+<script type="text/javascript">
+    $(document).ready(function () {
+        Load{{ page_name }}Lines('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}','@Model.Status');
+    });
+
+    var Load{{ page_name }}Lines = function (Code, Status) {
+        ShowProgress();
+        $.ajax({
+            async: true,
+            type: "GET",
+            dataType: "html",
+            url: "/{{ page_name }}/{{ page_name }}Lines",
+            data: { headerNo: Code, status: Status },
+            success: function (data) {
+                $("#divLines").html(data);
+                HideProgress();
+            },
+            error: function () {
+                HideProgress();
+                Swal.fire("There is some problem to process your request. Please try after some time");
+            }
+        });
+    };
+
+    var SendDocApprovalRequest = function (Code) {
+        ShowProgress();
+        $.ajax({
+            async: true,
+            type: "POST",
+            dataType: "json",
+            data: JSON.stringify({ docNo: Code }),
+            contentType: "application/json; charset=utf-8",
+            processData: false,
+            url: '/{{ page_name }}/Submit{{ page_name }}ApprovalRequest',
+            success: function (data) {
+                HideProgress();
+                if (data.success === true) {
+                    Swal.fire('Success', data.message, 'success');
+                    location.reload();
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            },
+            error: function (err) {
+                HideProgress();
+                Swal.fire('Warning', err.responseText, 'warning');
+            }
+        });
+    };
+
+    var CancelDocApprovalRequest = function (Code) {
+        ShowProgress();
+        $.ajax({
+            async: true,
+            type: "POST",
+            dataType: "json",
+            data: JSON.stringify({ docNo: Code }),
+            contentType: "application/json; charset=utf-8",
+            processData: false,
+            url: '/{{ page_name }}/Cancel{{ page_name }}ApprovalRequest',
+            success: function (data) {
+                HideProgress();
+                if (data.success === true) {
+                    Swal.fire('Success', data.message, 'success');
+                    location.reload();
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            },
+            error: function (err) {
+                HideProgress();
+                Swal.fire('Warning', err.responseText, 'warning');
+            }
+        });
+    };
+</script>
