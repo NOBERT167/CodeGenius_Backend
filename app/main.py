@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
+import traceback
 
 from services.odata_parser import ODataParser
 from services.code_generator import CodeGenerator
@@ -50,14 +51,19 @@ async def generate_full_code(request: FullCodeRequest):
             "success": True,
             "code": generated_code,
             "metadata": {
-                "primary_key": parser.document_info['primary_key'],
-                "user_filter_fields": [f['original_name'] for f in parser.document_info['user_filter_fields']],
-                "datatable_fields": [f['original_name'] for f in parser.document_info['datatable_properties']]
+                "primary_key": parser.document_info.get('primary_key'),
+                "user_filter_fields": [f.get('original_name') for f in
+                                       parser.document_info.get('user_filter_fields', [])],
+                "datatable_fields": [f.get('original_name') for f in
+                                     parser.document_info.get('datatable_properties', [])]
             }
         }
 
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        # Log the full traceback for debugging
+        print(f"Error in generate-full: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=400, detail=f"Error generating code: {str(e)}")
 
 
 @app.post("/generate-lines")
@@ -84,4 +90,7 @@ async def generate_lines_code(request: LinesCodeRequest):
         }
 
     except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        # Log the full traceback for debugging
+        print(f"Error in generate-lines: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=400, detail=f"Error generating lines code: {str(e)}")

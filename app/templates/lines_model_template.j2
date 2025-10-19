@@ -1,0 +1,19 @@
+using Latest_Staff_Portal.Models;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Web.Mvc;
+
+namespace Latest_Staff_Portal.ViewModel
+{
+    public class {{ model_name }}
+    {
+        {% for prop in properties %}
+        /// <summary>
+        /// {{ prop.description }}
+        /// </summary>
+        [JsonProperty("{{ prop.original_name }}")]
+        public {{ prop.type }} {{ prop.csharp_name }} { get; set; }
+        {% endfor %}
+    }
+}

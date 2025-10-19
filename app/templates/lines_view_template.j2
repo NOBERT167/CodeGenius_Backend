@@ -1,0 +1,88 @@
+@model List<{{ model_name }}>
+
+<div class="table-responsive">
+    <table id="datatable-buttons" class="table table-bordered dt-responsive nowrap" style="border-collapse: collapse; border-spacing: 0; width: 100%;">
+        <thead style="background-color: var(--deep-blue);color:white">
+            <tr>
+                {% set non_primary_properties = [] %}
+                {% for prop in properties %}
+                    {% if not prop.is_primary_key %}
+                        {% set _ = non_primary_properties.append(prop) %}
+                    {% endif %}
+                {% endfor %}
+
+                {% for prop in non_primary_properties[:6] %}
+                <th>{{ prop.csharp_name }}</th>
+                {% endfor %}
+                <th>
+                    @{
+                        if (ViewBag.Status == "Open")
+                        {
+                            <div>Actions</div>
+                        }
+                    }
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model != null && Model.Any())
+            {
+                foreach (var item in Model)
+                {
+                    <tr>
+                        {% for prop in non_primary_properties[:6] %}
+                        <td>@item.{{ prop.csharp_name }}</td>
+                        {% endfor %}
+                        <td>
+                            @{
+                                if (ViewBag.Status == "Open")
+                                {
+                                    <div style="text-align:right">
+                                        <button class="btn btn-danger" style="color:whitesmoke; border-radius:10px" onclick="Delete{{ page_name }}Line('@item.Line_No');">
+                                            <i class="fa fa-trash" aria-hidden="true"></i>
+                                            Delete Line
+                                        </button>
+                                    </div>
+                                }
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="{{ (non_primary_properties|length if non_primary_properties|length <= 6 else 6) + 1 }}" style="text-align:right">
+                    @{
+                        if (ViewBag.Status == "Open")
+                        {
+                            <button class="action-buttons" style="color:whitesmoke; border-radius:10px" onclick="Add{{ page_name }}Line();">
+                                <i class="fa fa-plus-circle" aria-hidden="true"></i> Add Line
+                            </button>
+                        }
+                    }
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+<script>
+    $("#datatable-buttons").DataTable({
+        lengthChange: true,
+        lengthMenu: [5, 10, 25, 50, 100],
+        "responsive": true,
+        language: {
+            emptyTable: "No lines available. Click 'Add Line' to add line.",
+            info: "Showing _START_ to _END_ of _TOTAL_ entries",
+            infoEmpty: "No entries available",
+            zeroRecords: "No matching records found"
+        },
+        columnDefs: [
+            {
+                targets: '_all',
+                defaultContent: ""
+            }
+        ]
+    });
+</script>

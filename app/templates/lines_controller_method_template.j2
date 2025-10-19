@@ -1,0 +1,60 @@
+        public PartialViewResult {{ page_name }}Lines(string headerNo, string status)
+        {
+            try
+            {
+                ViewBag.Status = status;
+                var rsrceReq = $"{{ entity_name }}?$filter=Document_No eq '{headerNo}'&$format=json";
+                var httpResponse = Credentials.GetOdataData(rsrceReq);
+
+                using var streamReader = new StreamReader(httpResponse.GetResponseStream());
+                var result = streamReader.ReadToEnd();
+
+                var odataResponse = JsonConvert.DeserializeObject<ODataResponse<{{ model_name }}>>(result);
+                var lines = odataResponse?.Value ?? [];
+
+                return PartialView("PartialViews/{{ page_name }}Lines", lines);
+            }
+            catch (Exception ex)
+            {
+                var erroMsg = new Error();
+                erroMsg.Message = ex.Message.Replace("'", "");
+                return PartialView("~/Views/Shared/Partial Views/ErroMessangeView.cshtml", erroMsg);
+            }
+        }
+
+        // TODO: Implement these methods based on your Business Central functions
+        /*
+        public JsonResult Add{{ page_name }}Line({{ page_name }}LineModel line)
+        {
+            try
+            {
+                // REPLACE WITH YOUR BUSINESS CENTRAL FUNCTION:
+                // var result = Credentials.ObjNav.Add{{ page_name }}Line(line.Document_No, line.Account_No, line.Amount, ...);
+
+                return Json(new { message = "Line added successfully!", success = true },
+                    JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { message = ex.Message.Replace("'", ""), success = false },
+                    JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        public JsonResult Delete{{ page_name }}Line(string lineNo)
+        {
+            try
+            {
+                // REPLACE WITH YOUR BUSINESS CENTRAL FUNCTION:
+                // var result = Credentials.ObjNav.Delete{{ page_name }}Line(lineNo);
+
+                return Json(new { message = "Line deleted successfully!", success = true },
+                    JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { message = ex.Message.Replace("'", ""), success = false },
+                    JsonRequestBehavior.AllowGet);
+            }
+        }
+        */
