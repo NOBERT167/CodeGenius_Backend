@@ -18,6 +18,7 @@ class ODataParser:
                 prop = {
                     "original_name": key,
                     "csharp_name": self._normalize_property_name(key),
+                    "display_name": self._format_label(key),
                     "type": self._infer_csharp_type(key, value),
                     "is_primary_key": self._is_primary_key(key),
                     "is_date": self._is_date_field(key, value),
@@ -237,3 +238,11 @@ class ODataParser:
             print(f"Error selecting datatable properties: {e}")
             # Return first few properties as fallback
             return self.properties[:min(max_count, len(self.properties))]
+
+    def _format_label(self, property_name: str) -> str:
+        """Convert Property_Name to Property Name"""
+        try:
+            # Replace underscores with spaces and capitalize each word
+            return ' '.join(word.capitalize() for word in property_name.split('_'))
+        except:
+            return property_name

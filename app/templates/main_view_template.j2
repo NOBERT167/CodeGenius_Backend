@@ -115,6 +115,58 @@ var Load{{ page_name }}List = function () {
         });
     }
 
+    // Submit Document Function
+    var Submit{{ page_name }} = function () {
+        var isValid = true;
+
+        // TODO: REPLACE THESE WITH ACTUAL PROPERTIES FROM YOUR FORM
+        // Example validation - adjust based on your actual form fields
+        var prop1 = $("#prop1").val();
+        if (!prop1) {
+            Swal.fire('Warning', 'Please enter Property 1', 'warning');
+            isValid = false;
+        }
+
+        var prop2 = $("#prop2").val();
+        if (!prop2) {
+            Swal.fire('Warning', 'Please enter Property 2', 'warning');
+            isValid = false;
+        }
+
+        if (!isValid) {
+            return;
+        }
+
+        var {{ page_name|lower }} = {
+            // TODO: MAP ALL PROPERTIES FROM YOUR FORM
+            Property1: prop1,
+            Property2: prop2
+            // Add other properties as needed
+        };
+        console.log({{ page_name|lower }});
+
+        ShowProgress();
+        $.ajax({
+            type: "POST",
+            url: "/{{ page_name }}/Submit{{ page_name }}",
+            data: JSON.stringify({{ page_name|lower }}),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function (data) {
+                HideProgress();
+                if (data.success) {
+                    View{{ page_name }}Doc(data.docNo);
+                } else {
+                    Swal.fire('Warning', data.message, 'warning');
+                }
+            },
+            error: function (err) {
+                HideProgress();
+                Swal.fire('Warning', err.responseText, 'warning');
+            }
+        });
+    }
+
     // Function to navigate back to list - implement as needed
     function {{ page_name }}Link() {
         window.location.href = '/{{ page_name }}';

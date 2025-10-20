@@ -34,18 +34,32 @@ class CodeGenerator:
     def generate_lines_code(self, parser, page_name, entity_name, parent_entity):
         """Generate only lines code"""
         try:
+            # Filter out primary key properties for the view
+            non_primary_properties = [prop for prop in parser.properties if not prop.get('is_primary_key')]
+
             context = {
                 'page_name': page_name,
                 'entity_name': entity_name,
                 'parent_entity': parent_entity,
                 'model_name': f"{page_name}LinesModel",
-                'properties': parser.properties
+                'properties': non_primary_properties,  # Use filtered properties
+                'non_primary_count': len(non_primary_properties)
             }
 
             return {
-                'model': self._generate_lines_model(context),
+                'model': self._generate_lines_model({
+                    'page_name': page_name,
+                    'entity_name': entity_name,
+                    'model_name': f"{page_name}LinesModel",
+                    'properties': parser.properties  # Keep all properties for model
+                }),
                 'partial_view': self._generate_lines_view(context),
-                'controller_method': self._generate_lines_controller_method(context)
+                'controller_method': self._generate_lines_controller_method({
+                    'page_name': page_name,
+                    'entity_name': entity_name,
+                    'model_name': f"{page_name}LinesModel",
+                    'properties': parser.properties
+                })
             }
         except Exception as e:
             raise Exception(f"Error generating lines code: {str(e)}")

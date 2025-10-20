@@ -2,17 +2,10 @@
 
 <div class="table-responsive">
     <table id="datatable-buttons" class="table table-bordered dt-responsive nowrap" style="border-collapse: collapse; border-spacing: 0; width: 100%;">
-        <thead style="background-color: var(--deep-blue);color:white">
+        <thead style="">
             <tr>
-                {% set non_primary_properties = [] %}
                 {% for prop in properties %}
-                    {% if not prop.is_primary_key %}
-                        {% set _ = non_primary_properties.append(prop) %}
-                    {% endif %}
-                {% endfor %}
-
-                {% for prop in non_primary_properties[:6] %}
-                <th>{{ prop.csharp_name }}</th>
+                <th>{{ prop.display_name }}</th>
                 {% endfor %}
                 <th>
                     @{
@@ -30,7 +23,7 @@
                 foreach (var item in Model)
                 {
                     <tr>
-                        {% for prop in non_primary_properties[:6] %}
+                        {% for prop in properties %}
                         <td>@item.{{ prop.csharp_name }}</td>
                         {% endfor %}
                         <td>
@@ -52,11 +45,11 @@
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="{{ (non_primary_properties|length if non_primary_properties|length <= 6 else 6) + 1 }}" style="text-align:right">
+                <td colspan="{{ properties|length + 1 }}" style="text-align:right">
                     @{
                         if (ViewBag.Status == "Open")
                         {
-                            <button class="action-buttons" style="color:whitesmoke; border-radius:10px" onclick="Add{{ page_name }}Line();">
+                            <button class="btn btn-primary btn-sm" style="color:whitesmoke; border-radius:10px" onclick="Add{{ page_name }}Line();">
                                 <i class="fa fa-plus-circle" aria-hidden="true"></i> Add Line
                             </button>
                         }
