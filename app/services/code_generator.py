@@ -4,8 +4,16 @@ import os
 
 class CodeGenerator:
     def __init__(self):
-        self.env = Environment(loader=FileSystemLoader("templates"))
+        # self.env = Environment(loader=FileSystemLoader("templates"))
+        # Get the directory where this file lives (app/services/)
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        # Move up one level (to app/) and join 'templates'
+        templates_path = os.path.join(base_dir, "..", "templates")
 
+        # Normalize the path for Windows
+        templates_path = os.path.normpath(templates_path)
+
+        self.env = Environment(loader=FileSystemLoader(templates_path))
     def generate_full_code(self, parser, page_name, entity_name):
         """Generate complete MVC code structure"""
         try:

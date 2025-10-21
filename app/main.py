@@ -4,10 +4,17 @@ from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import traceback
 
-from services.odata_parser import ODataParser
-from services.code_generator import CodeGenerator
+from app.services.odata_parser import ODataParser
+from app.services.code_generator import CodeGenerator
 
-app = FastAPI()
+app = FastAPI(
+    title="ASP.NET MVC Code Generator API",
+    description="Generate complete ASP.NET MVC code from OData responses",
+    version="1.0.0",
+    docs_url="/docs",  # Enable docs at /docs
+    redoc_url="/redoc"  # Enable redoc at /redoc
+)
+
 code_gen = CodeGenerator()
 
 app.add_middleware(
@@ -16,7 +23,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 class FullCodeRequest(BaseModel):
     odata: Dict[str, Any]
@@ -94,3 +100,15 @@ async def generate_lines_code(request: LinesCodeRequest):
         print(f"Error in generate-lines: {str(e)}")
         print(traceback.format_exc())
         raise HTTPException(status_code=400, detail=f"Error generating lines code: {str(e)}")
+
+# For IIS deployment
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        workers=4,
+        log_level="info"
+    )
+
