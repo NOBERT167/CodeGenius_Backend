@@ -2,12 +2,10 @@
 
 <div class="table-responsive">
     <table id="datatable-buttons" class="table table-bordered dt-responsive nowrap" style="border-collapse: collapse; border-spacing: 0; width: 100%;">
-        <thead style="background-color:black;color:white">
+        <thead style="">
             <tr>
-                <th>Action</th>
-                {% for prop in datatable_properties %}
-                <th>{{ prop.display_name }}</th>
-                {% endfor %}
+                <th>Action</th>{% for prop in datatable_properties %}
+                <th>{{ prop.display_name }}</th>{% endfor %}
             </tr>
         </thead>
         <tbody>
@@ -20,10 +18,8 @@
                             <button class="btn btn-primary btn-sm" onclick="View{{ page_name }}Doc('@item.{{ primary_key.csharp_name if primary_key else 'No' }}');">
                                 <i class="fa fa-eye"></i> View
                             </button>
-                        </td>
-                        {% for prop in datatable_properties %}
-                        <td>@item.{{ prop.csharp_name }}</td>
-                        {% endfor %}
+                        </td>{% for prop in datatable_properties %}
+                        <td>@item.{{ prop.csharp_name }}</td>{% endfor %}
                     </tr>
                 }
             }

@@ -41,84 +41,133 @@ class ODataParser:
         clean_name = re.sub(r'[^a-zA-Z0-9_]', '', name)
         return clean_name
 
-    def _infer_csharp_type(self, key: str, value: Any) -> str:
-        """Smart type inference with proper boolean detection"""
+    def _format_label(self, property_name: str) -> str:
+        """Convert Property_Name to Property Name"""
         try:
-            # First check if it's explicitly a boolean
-            if self._is_boolean_field(key, value):
-                return "bool"
+            # Replace underscores with spaces and capitalize each word
+            return ' '.join(word.capitalize() for word in property_name.split('_'))
+        except:
+            return property_name
 
-            # Then check for date/time fields
-            if self._is_date_field(key, value):
-                return "DateTime"
-
-            # Handle None values
+    def _infer_csharp_type(self, key: str, value: Any) -> str:
+        """Smart type inference with better detection logic"""
+        try:
+            # Handle None values first
             if value is None:
                 return "object"
 
+            # Handle actual boolean types
+            if isinstance(value, bool):
+                return "bool"
+
             # Handle string types
             if isinstance(value, str):
-                # Check for date strings
-                if re.match(r'^\d{4}-\d{2}-\d{2}', value) or 'date' in key.lower():
-                    return "DateTime"
-                # Check for time strings
-                if re.match(r'^\d{2}:\d{2}:\d{2}', value) or 'time' in key.lower():
+                # Check for time-only strings (HH:MM:SS)
+                if self._is_time_string(value):
                     return "TimeSpan"
+
+                # Check for date strings (more strict checking)
+                if self._is_definitely_date_string(key, value):
+                    return "DateTime"
+
+                # Check for boolean strings
+                if value.lower() in ['true', 'false', 'yes', 'no']:
+                    return "bool"
+
+                # Default for strings
                 return "string"
 
             # Handle numeric types
             elif isinstance(value, (int, float)):
+                # Check for amounts/money fields
                 if self._is_amount_field(key):
                     return "decimal"
-                # Check if it's actually a boolean represented as 0/1
-                if value in [0, 1] and self._is_likely_boolean(key):
-                    return "bool"
-                return "int" if isinstance(value, int) else "decimal"
 
-            # Handle boolean types
-            elif isinstance(value, bool):
-                return "bool"
+                # Check for boolean-like integers (only if field name strongly suggests boolean)
+                if value in [0, 1] and self._is_strong_boolean_indicator(key):
+                    return "bool"
+
+                # Default for integers
+                return "int" if isinstance(value, int) else "decimal"
 
             return "object"
         except Exception as e:
-            print(f"Error inferring type for key '{key}', value '{value}': {e}")
+            print(f"Error inferring type for {key}: {value} - {e}")
             return "object"
 
+    def _is_definitely_boolean(self, key: str, value: Any) -> bool:
+        """Strict boolean detection"""
+        # Strong boolean indicators in field names
+        strong_boolean_indicators = [
+            'is_', 'has_', 'can_', 'should_', 'will_', 'was_', 'were_',
+            'allow_', 'enable_', 'disable_', 'active', 'enabled', 'disabled',
+            'visible', 'hidden', 'locked', 'approved', 'rejected', 'published',
+            'completed', 'closed', 'posted', 'processed'
+        ]
+
+        key_lower = key.lower()
+
+        # If field name strongly suggests boolean
+        name_suggests_boolean = any(indicator in key_lower for indicator in strong_boolean_indicators)
+
+        # Value must clearly be boolean
+        value_is_boolean = (
+                isinstance(value, bool) or
+                (isinstance(value, (int, float)) and value in [0, 1]) or
+                (isinstance(value, str) and value.lower() in ['true', 'false', 'yes', 'no', 'y', 'n'])
+        )
+
+        return name_suggests_boolean and value_is_boolean
+
+    def _is_strong_boolean_indicator(self, key: str) -> bool:
+        """Check if field name strongly suggests it's a boolean"""
+        strong_indicators = [
+            'is_', 'has_', 'can_', 'should_', 'will_', 'was_', 'were_',
+            'allow_', 'enable_', 'disable_', 'active', 'enabled', 'disabled'
+        ]
+        return any(indicator in key.lower() for indicator in strong_indicators)
+
+    def _is_time_string(self, value: str) -> bool:
+        """Check if string represents only time (HH:MM:SS)"""
+        if not isinstance(value, str):
+            return False
+
+        # Match time patterns like "08:00:00", "14:30", "23:59:59"
+        time_patterns = [
+            r'^\d{1,2}:\d{2}:\d{2}$',  # HH:MM:SS
+            r'^\d{1,2}:\d{2}$',  # HH:MM
+        ]
+
+        return any(re.match(pattern, value) for pattern in time_patterns)
+
+    def _is_definitely_date_string(self, key: str, value: str) -> bool:
+        """Strict date string detection"""
+        if not isinstance(value, str):
+            return False
+
+        # Date-specific field names
+        date_field_indicators = ['date', 'created', 'modified', 'start', 'end', 'expir']
+        key_lower = key.lower()
+
+        # Field name must suggest it's a date
+        name_suggests_date = any(indicator in key_lower for indicator in date_field_indicators)
+
+        if not name_suggests_date:
+            return False
+
+        # Strict date patterns (must match exactly)
+        date_patterns = [
+            r'^\d{4}-\d{2}-\d{2}$',  # YYYY-MM-DD
+            r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}',  # YYYY-MM-DDTHH:MM:SS
+            r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}',  # YYYY-MM-DD HH:MM:SS
+            r'^\d{2}/\d{2}/\d{4}$',  # MM/DD/YYYY
+        ]
+
+        return any(re.match(pattern, value) for pattern in date_patterns)
+
     def _is_boolean_field(self, key: str, value: Any) -> bool:
-        """Check if field is boolean based on name and value"""
-        try:
-            boolean_indicators = [
-                'posted', 'closed', 'approved', 'rejected', 'completed',
-                'active', 'enabled', 'locked', 'paid', 'processed',
-                'is_', 'has_', 'allow_', 'enable_', 'disable_'
-            ]
-
-            # Check field name patterns
-            key_lower = key.lower()
-            name_suggests_boolean = any(indicator in key_lower for indicator in boolean_indicators)
-
-            # Check value patterns
-            value_suggests_boolean = (
-                    isinstance(value, bool) or
-                    (isinstance(value, (int, float)) and value in [0, 1]) or
-                    (isinstance(value, str) and value.lower() in ['true', 'false', 'yes', 'no'])
-            )
-
-            return name_suggests_boolean or value_suggests_boolean
-        except:
-            return False
-
-    def _is_likely_boolean(self, key: str) -> bool:
-        """Check if field name suggests it's a boolean (for 0/1 values)"""
-        try:
-            boolean_indicators = [
-                'posted', 'closed', 'approved', 'rejected', 'completed',
-                'active', 'enabled', 'locked', 'paid', 'processed',
-                'is_', 'has_', 'allow_', 'enable_', 'disable_'
-            ]
-            return any(indicator in key.lower() for indicator in boolean_indicators)
-        except:
-            return False
+        """Legacy method for compatibility"""
+        return self._is_definitely_boolean(key, value)
 
     def _is_primary_key(self, key: str) -> bool:
         try:
@@ -128,10 +177,10 @@ class ODataParser:
             return False
 
     def _is_date_field(self, key: str, value: Any) -> bool:
+        """For description purposes only"""
         try:
             date_indicators = ['date', 'time', 'created', 'modified', 'start', 'end']
             if isinstance(value, str):
-                # Check for common date patterns
                 date_patterns = [
                     r'^\d{4}-\d{2}-\d{2}',
                     r'^\d{2}/\d{2}/\d{4}',
@@ -145,7 +194,7 @@ class ODataParser:
 
     def _is_amount_field(self, key: str) -> bool:
         try:
-            amount_indicators = ['amount', 'total', 'cost', 'price', 'value', 'sum', 'balance']
+            amount_indicators = ['amount', 'total', 'cost', 'price', 'value', 'sum', 'balance', 'qty', 'quantity']
             return any(indicator in key.lower() for indicator in amount_indicators)
         except:
             return False
@@ -169,6 +218,8 @@ class ODataParser:
             if self._is_primary_key(key):
                 return "Primary key identifier"
             elif self._is_date_field(key, value):
+                if self._is_time_string(str(value)):
+                    return "Time field"
                 return "Date field"
             elif self._is_amount_field(key):
                 return "Monetary amount"
@@ -176,6 +227,8 @@ class ODataParser:
                 return "Document status"
             elif self._is_boolean_field(key, value):
                 return "Boolean indicator"
+            elif self._is_user_related(key):
+                return "User reference"
             return ""
         except:
             return ""
@@ -238,11 +291,3 @@ class ODataParser:
             print(f"Error selecting datatable properties: {e}")
             # Return first few properties as fallback
             return self.properties[:min(max_count, len(self.properties))]
-
-    def _format_label(self, property_name: str) -> str:
-        """Convert Property_Name to Property Name"""
-        try:
-            # Replace underscores with spaces and capitalize each word
-            return ' '.join(word.capitalize() for word in property_name.split('_'))
-        except:
-            return property_name

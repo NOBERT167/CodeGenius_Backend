@@ -9,7 +9,6 @@ namespace Latest_Staff_Portal.ViewModel
     public class {{ model_name }}
     {
         {% for prop in properties %}
-        public {{ prop.type }} {{ prop.csharp_name }} { get; set; }
-        {% endfor %}
+         public {{ prop.type }} {{ prop.csharp_name }} { get; set; }{% endfor %}
     }
 }

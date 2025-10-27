@@ -3,10 +3,8 @@
 <div class="table-responsive">
     <table id="datatable-buttons" class="table table-bordered dt-responsive nowrap" style="border-collapse: collapse; border-spacing: 0; width: 100%;">
         <thead style="">
-            <tr>
-                {% for prop in properties %}
-                <th>{{ prop.display_name }}</th>
-                {% endfor %}
+            <tr>{% for prop in properties %}
+                <th>{{ prop.display_name }}</th>{% endfor %}
                 <th>
                     @{
                         if (ViewBag.Status == "Open")
@@ -22,10 +20,8 @@
             {
                 foreach (var item in Model)
                 {
-                    <tr>
-                        {% for prop in properties %}
-                        <td>@item.{{ prop.csharp_name }}</td>
-                        {% endfor %}
+                    <tr>{% for prop in properties %}
+                        <td>@item.{{ prop.csharp_name }}</td>{% endfor %}
                         <td>
                             @{
                                 if (ViewBag.Status == "Open")
@@ -49,7 +45,7 @@
                     @{
                         if (ViewBag.Status == "Open")
                         {
-                            <button class="btn btn-primary btn-sm" style="color:whitesmoke; border-radius:10px" onclick="Add{{ page_name }}Line();">
+                            <button class="action-buttons" style="color:whitesmoke; border-radius:10px" onclick="Add{{ page_name }}Line();">
                                 <i class="fa fa-plus-circle" aria-hidden="true"></i> Add Line
                             </button>
                         }
