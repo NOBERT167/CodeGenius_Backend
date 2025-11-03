@@ -4,8 +4,8 @@ from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import traceback
 
-from services.odata_parser import ODataParser
-from services.code_generator import CodeGenerator
+from app.services.odata_parser import ODataParser
+from app.services.code_generator import CodeGenerator
 
 app = FastAPI(
     title="ASP.NET MVC Code Generator API",
@@ -166,3 +166,12 @@ async def generate_function_line(request: FunctionLineRequest):
         raise HTTPException(status_code=400, detail=f"Error generating function line code: {str(e)}")
 
 
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        workers=4,
+        log_level="info"
+    )
