@@ -1,5 +1,7 @@
 from jinja2 import Environment, FileSystemLoader
 import os
+# from function_parser import FunctionParser
+from .function_parser import FunctionParser
 
 
 class CodeGenerator:
@@ -128,11 +130,16 @@ class CodeGenerator:
         except Exception as e:
             return f"// Error generating lines controller method: {str(e)}"
 
-    def generate_function_header_code(self, function_definition, page_name, function_name):
+    # Add this import at the top
+    from services.function_parser import FunctionParser
+
+    # Update the function generation methods
+    def generate_function_header_code(self, xml_string, page_name, function_name):
         """Generate code for header function (without docNo parameter)"""
         try:
-            # Parse function parameters
-            parameters = self._parse_function_parameters(function_definition)
+            # Parse XML string
+            parser = FunctionParser(xml_string).parse()
+            parameters = parser.get_parameters()
 
             context = {
                 'page_name': page_name,
@@ -151,11 +158,12 @@ class CodeGenerator:
         except Exception as e:
             raise Exception(f"Error generating function header code: {str(e)}")
 
-    def generate_function_line_code(self, function_definition, page_name, function_name, parent_entity):
+    def generate_function_line_code(self, xml_string, page_name, function_name, parent_entity):
         """Generate code for line function (with docNo parameter)"""
         try:
-            # Parse function parameters
-            parameters = self._parse_function_parameters(function_definition)
+            # Parse XML string
+            parser = FunctionParser(xml_string).parse()
+            parameters = parser.get_parameters()
 
             context = {
                 'page_name': page_name,
@@ -174,6 +182,11 @@ class CodeGenerator:
             }
         except Exception as e:
             raise Exception(f"Error generating function line code: {str(e)}")
+
+    def _has_docno_parameter(self, parameters):
+        """Check if function has docNo parameter (indicates line function)"""
+        docno_indicators = ['docno', 'documentno', 'no', 'code']
+        return any(param['name'].lower() in docno_indicators for param in parameters)
 
     def _parse_function_parameters(self, function_definition):
         """Parse SOAP function parameters from XML definition"""

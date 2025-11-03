@@ -37,12 +37,12 @@ class LinesCodeRequest(BaseModel):
     parent_entity: Optional[str] = None
 
 class FunctionHeaderRequest(BaseModel):
-    function_definition: Dict[str, Any]
+    function_definition: str  # Changed from Dict to str - XML string
     page_name: str
     function_name: str
 
 class FunctionLineRequest(BaseModel):
-    function_definition: Dict[str, Any]
+    function_definition: str  # Changed from Dict to str - XML string
     page_name: str
     function_name: str
     parent_entity: str
@@ -113,10 +113,19 @@ async def generate_lines_code(request: LinesCodeRequest):
         print(traceback.format_exc())
         raise HTTPException(status_code=400, detail=f"Error generating lines code: {str(e)}")
 
+
 @app.post("/generate-function-header")
 async def generate_function_header(request: FunctionHeaderRequest):
     try:
-        # Generate header function code
+        # Validate XML is not empty
+        if not request.function_definition.strip():
+            raise HTTPException(status_code=400, detail="Function definition XML cannot be empty")
+
+        # Basic XML validation
+        if not request.function_definition.strip().startswith('<'):
+            raise HTTPException(status_code=400, detail="Invalid XML format")
+
+        # Generate code
         generated_code = code_gen.generate_function_header_code(
             request.function_definition,
             request.page_name,

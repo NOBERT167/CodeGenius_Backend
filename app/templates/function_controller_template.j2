@@ -33,9 +33,13 @@ public JsonResult Submit{{ page_name }}({{ model_name }} viewModel)
         }
 
         // Call Business Central function
-        {% if parameters %}
+        {% set param_count = parameters|length %}
+        {% if param_count > 0 %}
         var result = Credentials.ObjNav.{{ function_name }}(
-            {% for param in parameters %}{% if param.name.lower() == 'userid' %}UserID{% else %}viewModel.{{ param.csharp_name }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}
+            {% for param in parameters %}
+            {% if param.name.lower() == 'userid' or param.name.lower() == 'loggedinuser' %}UserID
+            {% else %}viewModel.{{ param.csharp_name }}{% endif %}{% if not loop.last %}, {% endif %}
+            {% endfor %}
         );
         {% else %}
         var result = Credentials.ObjNav.{{ function_name }}();
