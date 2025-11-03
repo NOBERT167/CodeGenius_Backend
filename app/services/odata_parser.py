@@ -291,3 +291,87 @@ class ODataParser:
             print(f"Error selecting datatable properties: {e}")
             # Return first few properties as fallback
             return self.properties[:min(max_count, len(self.properties))]
+
+    def parse_function_parameters(self, function_definition):
+        """Parse SOAP function parameters with enhanced detection"""
+        parameters = []
+
+        try:
+            # Handle different XML structure formats
+            complex_type = function_definition.get('complexType', {})
+            sequence = complex_type.get('sequence', {})
+            elements = sequence.get('element', [])
+
+            if not isinstance(elements, list):
+                elements = [elements]
+
+            for element in elements:
+                # Handle both dictionary and string element formats
+                if isinstance(element, dict):
+                    param_name = element.get('@name', '')
+                    param_type = element.get('@type', 'string')
+                    min_occurs = element.get('@minOccurs', '1')
+                else:
+                    # If element is a string, use it as name with default type
+                    param_name = element
+                    param_type = 'string'
+                    min_occurs = '1'
+
+                if param_name:  # Only process if we have a name
+                    csharp_type = self._map_xml_type_to_csharp(param_type)
+
+                    parameters.append({
+                        'name': param_name,
+                        'original_name': param_name,
+                        'csharp_name': self._normalize_function_param_name(param_name),
+                        'display_name': self._format_function_display_name(param_name),
+                        'type': csharp_type,
+                        'xml_type': param_type,
+                        'is_required': min_occurs == '1',
+                        'is_dropdown': self._is_dropdown_field(param_name),
+                        'is_date': csharp_type == 'DateTime',
+                        'is_amount': self._is_amount_field(param_name)
+                    })
+
+        except Exception as e:
+            print(f"Error parsing function parameters: {e}")
+
+        return parameters
+
+    def _normalize_function_param_name(self, name):
+        """Normalize function parameter names to C# property convention"""
+        # Remove special characters and capitalize each word
+        clean_name = re.sub(r'[^a-zA-Z0-9_]', '', name)
+        return ''.join(word.capitalize() for word in clean_name.split('_'))
+
+    def _format_function_display_name(self, name):
+        """Format function parameter name for display"""
+        return ' '.join(word.capitalize() for word in name.split('_'))
+
+    def _map_xml_type_to_csharp(self, xml_type):
+        """Map XML schema types to C# types with more comprehensive mapping"""
+        type_mapping = {
+            'string': 'string',
+            'decimal': 'decimal',
+            'int': 'int',
+            'integer': 'int',
+            'boolean': 'bool',
+            'date': 'DateTime',
+            'datetime': 'DateTime',
+            'double': 'double',
+            'float': 'float',
+            'long': 'long',
+            'short': 'short',
+            'byte': 'byte'
+        }
+        return type_mapping.get(xml_type.lower(), 'string')
+
+    def _is_dropdown_field(self, param_name):
+        """Identify if a parameter should be a dropdown field"""
+        dropdown_indicators = [
+            'account', 'code', 'type', 'category', 'status',
+            'source', 'item', 'vote', 'dimension', 'gl', 'vendor',
+            'customer', 'employee', 'department'
+        ]
+        param_lower = param_name.lower()
+        return any(indicator in param_lower for indicator in dropdown_indicators)

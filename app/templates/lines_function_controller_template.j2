@@ -1,0 +1,80 @@
+public ActionResult New{{ page_name }}Line(string docNo)
+{
+    try
+    {
+        if (Session["Username"] == null)
+            return RedirectToAction("Login", "Login");
+
+        var employee = Session["EmployeeData"] as EmployeeView;
+        var viewModel = new {{ model_name }}();
+        Session["httpResponse"] = null;
+
+                //If you need dropdownlist uncomment this and replace with actual page names
+                //#region
+                //var glAccountList = new List<DropdownList>();
+                //var pageGlAccounts = "GLAccounts?$filter=Available_for_workplaning eq true&$format=json";
+                //var httpResponseDomains = Credentials.GetOdataData(pageGlAccounts);
+                //using (var streamReader = new StreamReader(httpResponseDomains.GetResponseStream()))
+                //{
+                //    var result = streamReader.ReadToEnd();
+                //    var details = JObject.Parse(result);
+                //    glAccountList.AddRange(from JObject config in details["value"] select new DropdownList { Text = $"{(string)config["No"]} - {(string)config["Name"]}", Value = (string)config["No"] });
+                //}
+
+                //viewModel.GlAccountList = glAccountList.Select(x =>
+                //    new SelectListItem
+                //    {
+                //        Text = x.Text,
+                //        Value = x.Value
+                //    }).ToList();
+                //#endregion
+
+        return PartialView("PartialViews/New{{ page_name }}Line", viewModel);
+    }
+    catch (Exception ex)
+    {
+        var erroMsg = new Error();
+        erroMsg.Message = ex.Message;
+        return PartialView("~/Views/Shared/Partial Views/ErroMessangeView.cshtml", erroMsg);
+    }
+}
+
+public JsonResult Submit{{ page_name }}Line({{ model_name }} viewModel)
+{
+    try
+    {
+        var employee = Session["EmployeeData"] as EmployeeView;
+        var staffNo = Session["Username"].ToString();
+        var UserID = employee?.UserID;
+
+        if (string.IsNullOrEmpty(staffNo))
+        {
+            return Json(new { message = "User session expired. Please login again.", success = false }, JsonRequestBehavior.AllowGet);
+        }
+
+        var success = Credentials.ObjNav.{{ function_name }}(
+{% for param in parameters %}{% if param.name.lower() == 'docno' %}viewModel.No{% elif param.name.lower() == 'userid' %}UserID{% else %}viewModel.{{ param.csharp_name }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}
+        );
+
+        return Json(new { message = success ? "{{ page_name }} line added successfully" : "Failed to add {{ page_name }} line", success = success }, JsonRequestBehavior.AllowGet);
+    }
+    catch (Exception ex)
+    {
+        return Json(new { message = ex.Message.Replace("'", ""), success = false }, JsonRequestBehavior.AllowGet);
+    }
+}
+
+public JsonResult Delete{{ page_name }}Line(string code, string lineNo)
+{
+    try
+    {
+        // TODO: Replace with your actual Business Central delete function
+        // Credentials.ObjNav.FnDelete{{ page_name }}Lines(Convert.ToInt32(lineNo), code);
+
+        return Json(new { message = "Line deleted successfully", success = true }, JsonRequestBehavior.AllowGet);
+    }
+    catch (Exception ex)
+    {
+        return Json(new { message = ex.Message.Replace("'", ""), success = false }, JsonRequestBehavior.AllowGet);
+    }
+}
