@@ -1,7 +1,7 @@
 @model {{ model_name }}
 
 <div class="row">
-    {% for param in parameters %}{% if param.name.lower() != 'docno' and param.name.lower() != 'userid' %}
+{% for param in parameters %}{% if param.name.lower() != 'docno' and param.name.lower() != 'userid' and param.name.lower() != 'loggedinuser' %}
     <div class="col-md-6">
         <div class="form-group">
             @Html.Label("{{ param.display_name }}", htmlAttributes: new { @class = "control-label col-md-12" })
@@ -12,7 +12,7 @@
             {% endif %}
         </div>
     </div>
-    {% endif %}{% endfor %}
+{% endif %}{% endfor %}
 </div>
 
 <div align="center">
@@ -21,8 +21,7 @@
 
 <script>
     $(document).ready(function () {
-        // Initialize datepickers for DateTime fields
-        {% for param in parameters %}{% if param.type == 'DateTime' %}
+{% for param in parameters %}{% if param.type == 'DateTime' %}
         $('#{{ param.name }}').datepicker({
             changeMonth: true,
             changeYear: true,
@@ -31,6 +30,6 @@
             showOtherMonths: true,
             dateFormat: 'dd/mm/yy'
         });
-        {% endif %}{% endfor %}
+{% endif %}{% endfor %}
     });
 </script>

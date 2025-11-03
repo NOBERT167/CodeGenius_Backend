@@ -7,9 +7,7 @@ var Add{{ page_name }}Line = function () {
         type: "GET",
         dataType: "html",
         url: '/{{ parent_entity }}/New{{ page_name }}Line',
-        data: {
-            docNo: docNo
-        },
+        data: { docNo: docNo },
         success: function (data) {
             $("#modalBody").html(data);
             HideProgress();
@@ -23,27 +21,19 @@ var Add{{ page_name }}Line = function () {
 };
 
 function Submit{{ page_name }}Line() {
-    var isValid = true;
-
-    // Validation for required fields
-    {% for param in parameters %}{% if param.is_required and param.name.lower() != 'docno' and param.name.lower() != 'userid' and param.name.lower() != 'lineno' %}
+    var isValid = true;{% for param in parameters %}{% if param.is_required and param.name.lower() != 'docno' and param.name.lower() != 'userid' and param.name.lower() != 'lineno' %}
     var {{ param.name }} = $("#{{ param.name }}").val();
     if (!{{ param.name }}) {
         Swal.fire('Warning', 'Please provide {{ param.display_name }}', 'warning');
         isValid = false;
         return;
-    }
-    {% endif %}{% endfor %}
+    }{% endif %}{% endfor %}
 
-    if (!isValid) {
-        return;
-    }
+    if (!isValid) return;
 
     var {{ page_name|lower }}Line = {
-        No: '{% if primary_key %}@Model.{{ primary_key.csharp_name }}{% else %}@Model.No{% endif %}',
-        {% for param in parameters %}{% if param.name.lower() != 'docno' and param.name.lower() != 'userid' and param.name.lower() != 'lineno' %}
-        {{ param.csharp_name }}: {% if param.type == 'DateTime' %}$("#{{ param.name }}").val(){% else %}{% if param.type == 'int' or param.type == 'decimal' %}parseFloat($("#{{ param.name }}").val()){% else %}$("#{{ param.name }}").val(){% endif %}{% endif %}{% if not loop.last %},{% endif %}
-        {% endif %}{% endfor %}
+        No: '{% if primary_key %}@Model.{{ primary_key.csharp_name }}{% else %}@Model.No{% endif %}',{% for param in parameters %}{% if param.name.lower() != 'docno' and param.name.lower() != 'userid' and param.name.lower() != 'lineno' %}
+        {{ param.csharp_name }}: {% if param.type == 'DateTime' %}$("#{{ param.name }}").val(){% else %}{% if param.type == 'int' or param.type == 'decimal' %}parseFloat($("#{{ param.name }}").val()){% else %}$("#{{ param.name }}").val(){% endif %}{% endif %}{% if not loop.last %},{% endif %}{% endif %}{% endfor %}
     };
 
     console.log({{ page_name|lower }}Line);
@@ -60,7 +50,6 @@ function Submit{{ page_name }}Line() {
             if (data.success) {
                 $("#myModal").modal("hide");
                 Swal.fire('Success', data.message, 'success');
-                // Reload the lines partial view
                 Load{{ page_name }}Lines('{% if primary_key %}@Model.{{ primary_key.csharp_name }}{% else %}@Model.No{% endif %}', '@Model.Status');
             } else {
                 Swal.fire('Warning', data.message, 'warning');
@@ -89,10 +78,7 @@ function Delete{{ page_name }}Line(entryNo) {
             $.ajax({
                 type: "POST",
                 url: "/{{ parent_entity }}/Delete{{ page_name }}Line",
-                data: JSON.stringify({
-                    code: docNo,
-                    lineNo: entryNo
-                }),
+                data: JSON.stringify({ code: docNo, lineNo: entryNo }),
                 contentType: "application/json; charset=utf-8",
                 dataType: "json",
                 success: function (data) {

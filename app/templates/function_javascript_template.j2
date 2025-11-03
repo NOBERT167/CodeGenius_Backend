@@ -22,20 +22,22 @@ var New{{ page_name }} = function () {
 
 var Submit{{ page_name }} = function () {
     var isValid = true;
-
-    // Validation
-    {% for param in parameters %}{% if param.is_required and param.name.lower() != 'docno' and param.name.lower() != 'userid' %}
+    {%- for param in parameters %}
+    {%- if param.is_required and param.name.lower() != 'docno' and param.name.lower() != 'userid' and param.name.lower() != 'loggedinuser' %}
     var {{ param.name }} = $("#{{ param.name }}").val();
     if (!{{ param.name }}) {
         Swal.fire('Warning', "{{ param.display_name }} is required", 'warning');
         return false;
     }
-    {% endif %}{% endfor %}
+    {%- endif %}
+    {%- endfor %}
 
     var {{ page_name|lower }} = {
-        {% for param in parameters %}{% if param.name.lower() != 'docno' and param.name.lower() != 'userid' %}
+        {%- for param in parameters %}
+        {%- if param.name.lower() != 'docno' and param.name.lower() != 'userid' and param.name.lower() != 'loggedinuser' %}
         {{ param.csharp_name }}: {% if param.type == 'DateTime' %}$("#{{ param.name }}").val(){% else %}{% if param.type == 'int' or param.type == 'decimal' %}parseFloat($("#{{ param.name }}").val()){% else %}$("#{{ param.name }}").val(){% endif %}{% endif %}{% if not loop.last %},{% endif %}
-        {% endif %}{% endfor %}
+        {%- endif %}
+        {%- endfor %}
     };
 
     ShowProgress();
@@ -49,8 +51,7 @@ var Submit{{ page_name }} = function () {
             HideProgress();
             if (data.success) {
                 $("#myModal").modal("hide");
-                Swal.fire('Success', data.message, 'success');
-                // Redirect to document view or reload list
+                Swal.fire('Success', data.message, 'success");
                 if (data.docNo) {
                     View{{ page_name }}Doc(data.docNo);
                 } else {

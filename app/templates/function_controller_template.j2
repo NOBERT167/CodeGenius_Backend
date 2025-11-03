@@ -28,32 +28,21 @@ public JsonResult Submit{{ page_name }}({{ model_name }} viewModel)
 
         if (string.IsNullOrEmpty(staffNo))
         {
-            return Json(new { message = "User session expired. Please login again.", success = false },
-                JsonRequestBehavior.AllowGet);
+            return Json(new { message = "User session expired. Please login again.", success = false }, JsonRequestBehavior.AllowGet);
         }
 
-        // Call Business Central function
-        {% set param_count = parameters|length %}
-        {% if param_count > 0 %}
+{% if parameters|length > 0 %}
         var result = Credentials.ObjNav.{{ function_name }}(
-            {% for param in parameters %}
-            {% if param.name.lower() == 'userid' or param.name.lower() == 'loggedinuser' %}UserID
-            {% else %}viewModel.{{ param.csharp_name }}{% endif %}{% if not loop.last %}, {% endif %}
-            {% endfor %}
+{% for param in parameters %}{% if param.name.lower() == 'userid' or param.name.lower() == 'loggedinuser' %}UserID{% else %}viewModel.{{ param.csharp_name }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}
         );
-        {% else %}
+{% else %}
         var result = Credentials.ObjNav.{{ function_name }}();
-        {% endif %}
+{% endif %}
 
-        return Json(new {
-            message = "{{ page_name }} created successfully",
-            success = true,
-            docNo = result
-        }, JsonRequestBehavior.AllowGet);
+        return Json(new { message = "{{ page_name }} created successfully", success = true, docNo = result }, JsonRequestBehavior.AllowGet);
     }
     catch (Exception ex)
     {
-        return Json(new { message = ex.Message.Replace("'", ""), success = false },
-            JsonRequestBehavior.AllowGet);
+        return Json(new { message = ex.Message.Replace("'", ""), success = false }, JsonRequestBehavior.AllowGet);
     }
 }

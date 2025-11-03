@@ -1,6 +1,6 @@
 public class {{ model_name }}
 {
-    {% for param in parameters %}{% if param.name.lower() != 'docno' and param.name.lower() != 'userid' and param.name.lower() != 'loggedinuser' %}
+{% for param in parameters %}{% if param.name.lower() != 'docno' and param.name.lower() != 'userid' and param.name.lower() != 'loggedinuser' %}
     public {{ param.type }} {{ param.csharp_name }} { get; set; }
-    {% endif %}{% endfor %}
+{% endif %}{% endfor %}
 }
