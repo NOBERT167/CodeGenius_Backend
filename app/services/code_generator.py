@@ -1,8 +1,6 @@
 from jinja2 import Environment, FileSystemLoader
 import os
-# from function_parser import FunctionParser
 from .function_parser import FunctionParser
-
 
 class CodeGenerator:
     def __init__(self):
@@ -129,9 +127,6 @@ class CodeGenerator:
             return template.render(**context)
         except Exception as e:
             return f"// Error generating lines controller method: {str(e)}"
-
-    # Add this import at the top
-    from services.function_parser import FunctionParser
 
     # Update the function generation methods
     def generate_function_header_code(self, xml_string, page_name, function_name):
