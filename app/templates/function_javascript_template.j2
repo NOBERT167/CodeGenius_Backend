@@ -1,0 +1,68 @@
+var New{{ page_name }} = function () {
+    $("#labelF").text("New {{ page_name }}");
+    ShowProgress();
+    $.ajax({
+        async: true,
+        type: "POST",
+        datatype: "json",
+        contentType: "application/json; charset = utf-8",
+        processData: false,
+        url: '/{{ page_name }}/New{{ page_name }}',
+        success: function (data) {
+            $("#modalBody").html(data);
+            HideProgress();
+            $("#myModal").modal("show");
+        },
+        error: function (err) {
+            HideProgress();
+            Swal.fire('Warning', err, 'warning');
+        }
+    });
+}
+
+var Submit{{ page_name }} = function () {
+    var isValid = true;
+
+    // Validation
+    {% for param in parameters %}{% if param.is_required and param.name.lower() != 'docno' and param.name.lower() != 'userid' %}
+    var {{ param.name }} = $("#{{ param.name }}").val();
+    if (!{{ param.name }}) {
+        Swal.fire('Warning', "{{ param.display_name }} is required", 'warning');
+        return false;
+    }
+    {% endif %}{% endfor %}
+
+    var {{ page_name|lower }} = {
+        {% for param in parameters %}{% if param.name.lower() != 'docno' and param.name.lower() != 'userid' %}
+        {{ param.csharp_name }}: {% if param.type == 'DateTime' %}$("#{{ param.name }}").val(){% else %}{% if param.type == 'int' or param.type == 'decimal' %}parseFloat($("#{{ param.name }}").val()){% else %}$("#{{ param.name }}").val(){% endif %}{% endif %}{% if not loop.last %},{% endif %}
+        {% endif %}{% endfor %}
+    };
+
+    ShowProgress();
+    $.ajax({
+        type: "POST",
+        url: "/{{ page_name }}/Submit{{ page_name }}",
+        data: JSON.stringify({{ page_name|lower }}),
+        contentType: "application/json; charset=utf-8",
+        dataType: "json",
+        success: function (data) {
+            HideProgress();
+            if (data.success) {
+                $("#myModal").modal("hide");
+                Swal.fire('Success', data.message, 'success');
+                // Redirect to document view or reload list
+                if (data.docNo) {
+                    View{{ page_name }}Doc(data.docNo);
+                } else {
+                    Load{{ page_name }}List();
+                }
+            } else {
+                Swal.fire('Warning', data.message, 'warning');
+            }
+        },
+        error: function (err) {
+            HideProgress();
+            Swal.fire('Warning', err.responseText, 'warning');
+        }
+    });
+}

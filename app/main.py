@@ -4,8 +4,8 @@ from pydantic import BaseModel
 from typing import Dict, Any, Optional
 import traceback
 
-from app.services.odata_parser import ODataParser
-from app.services.code_generator import CodeGenerator
+from services.odata_parser import ODataParser
+from services.code_generator import CodeGenerator
 
 app = FastAPI(
     title="ASP.NET MVC Code Generator API",
@@ -35,6 +35,18 @@ class LinesCodeRequest(BaseModel):
     page_name: str
     entity_name: Optional[str] = None
     parent_entity: Optional[str] = None
+
+class FunctionHeaderRequest(BaseModel):
+    function_definition: Dict[str, Any]
+    page_name: str
+    function_name: str
+
+class FunctionLineRequest(BaseModel):
+    function_definition: Dict[str, Any]
+    page_name: str
+    function_name: str
+    parent_entity: str
+
 
 
 @app.post("/generate-full")
@@ -101,14 +113,47 @@ async def generate_lines_code(request: LinesCodeRequest):
         print(traceback.format_exc())
         raise HTTPException(status_code=400, detail=f"Error generating lines code: {str(e)}")
 
-# For IIS deployment
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        workers=4,
-        log_level="info"
-    )
+@app.post("/generate-function-header")
+async def generate_function_header(request: FunctionHeaderRequest):
+    try:
+        # Generate header function code
+        generated_code = code_gen.generate_function_header_code(
+            request.function_definition,
+            request.page_name,
+            request.function_name
+        )
+
+        return {
+            "success": True,
+            "code": generated_code,
+            "message": "Function header code generated successfully"
+        }
+
+    except Exception as e:
+        print(f"Error in generate-function-header: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=400, detail=f"Error generating function header code: {str(e)}")
+
+@app.post("/generate-function-line")
+async def generate_function_line(request: FunctionLineRequest):
+    try:
+        # Generate line function code
+        generated_code = code_gen.generate_function_line_code(
+            request.function_definition,
+            request.page_name,
+            request.function_name,
+            request.parent_entity
+        )
+
+        return {
+            "success": True,
+            "code": generated_code,
+            "message": "Function line code generated successfully"
+        }
+
+    except Exception as e:
+        print(f"Error in generate-function-line: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=400, detail=f"Error generating function line code: {str(e)}")
+
 

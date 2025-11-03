@@ -1,0 +1,12 @@
+public class {{ model_name }}
+{
+    public string No { get; set; }
+    {% for param in parameters %}{% if param.name.lower() != 'docno' and param.name.lower() != 'userid' and param.name.lower() != 'lineno' %}
+    public {{ param.type }} {{ param.csharp_name }} { get; set; }
+    {% endif %}{% endfor %}
+
+    // Dropdown lists for form fields
+    {% for param in parameters %}{% if param.name.lower() in ['accountno', 'fundingsource', 'voteitem', 'dim3', 'dim6'] %}
+    public List<SelectListItem> {{ param.csharp_name }}List { get; set; } = new List<SelectListItem>();
+    {% endif %}{% endfor %}
+}

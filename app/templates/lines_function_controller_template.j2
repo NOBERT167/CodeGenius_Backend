@@ -1,0 +1,101 @@
+public ActionResult New{{ page_name }}Line(string docNo)
+{
+    try
+    {
+        if (Session["Username"] == null)
+            return RedirectToAction("Login", "Login");
+
+        var employee = Session["EmployeeData"] as EmployeeView;
+        var viewModel = new {{ model_name }}();
+        Session["httpResponse"] = null;
+
+        viewModel.No = docNo;
+
+        // REGION: Dropdown Data Population
+        // Uncomment and modify the following regions if you need to fetch dropdown data from Business Central
+        {% for param in parameters %}{% if param.name.lower() in ['accountno', 'fundingsource', 'voteitem', 'dim3', 'dim6'] %}
+        /*
+        #region {{ param.name }} List
+        var {{ param.name }}List = new List<DropdownList>();
+        var page{{ param.csharp_name }} = "REPLACE_WITH_ODATA_PAGE_NAME?$filter=REPLACE_WITH_FILTER&$format=json";
+        var httpResponse{{ param.csharp_name }} = Credentials.GetOdataData(page{{ param.csharp_name }});
+        using (var streamReader = new StreamReader(httpResponse{{ param.csharp_name }}.GetResponseStream()))
+        {
+            var result = streamReader.ReadToEnd();
+            var details = JObject.Parse(result);
+            {{ param.name }}List.AddRange(from JObject config in details["value"]
+                select new DropdownList {
+                    Text = $"{(string)config["No"]} - {(string)config["Name"]}",
+                    Value = (string)config["No"]
+                });
+        }
+        viewModel.{{ param.csharp_name }}List = {{ param.name }}List.Select(x =>
+            new SelectListItem
+            {
+                Text = x.Text,
+                Value = x.Value
+            }).ToList();
+        #endregion
+        */
+        {% endif %}{% endfor %}
+        // END REGION
+
+        return PartialView("PartialViews/New{{ page_name }}Line", viewModel);
+    }
+    catch (Exception ex)
+    {
+        var erroMsg = new Error();
+        erroMsg.Message = ex.Message;
+        return PartialView("~/Views/Shared/Partial Views/ErroMessangeView.cshtml", erroMsg);
+    }
+}
+
+public JsonResult Submit{{ page_name }}Line({{ model_name }} viewModel)
+{
+    try
+    {
+        var employee = Session["EmployeeData"] as EmployeeView;
+        var staffNo = Session["Username"].ToString();
+        var UserID = employee?.UserID;
+
+        if (string.IsNullOrEmpty(staffNo))
+        {
+            return Json(new { message = "User session expired. Please login again.", success = false },
+                JsonRequestBehavior.AllowGet);
+        }
+
+        // Call Business Central line function
+        var success = Credentials.ObjNav.{{ function_name }}(
+            {% for param in parameters %}
+            {% if param.name.lower() == 'docno' %}viewModel.No{% elif param.name.lower() == 'userid' %}UserID{% else %}viewModel.{{ param.csharp_name }}{% endif %}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        );
+
+        return Json(new {
+            message = success ? "{{ page_name }} line submitted successfully" : "Failed to submit {{ page_name }} line",
+            success = success
+        }, JsonRequestBehavior.AllowGet);
+    }
+    catch (Exception ex)
+    {
+        return Json(new { message = ex.Message.Replace("'", ""), success = false },
+            JsonRequestBehavior.AllowGet);
+    }
+}
+
+public JsonResult Delete{{ page_name }}Line(string code, string lineNo)
+{
+    try
+    {
+        // TODO: Replace with your actual Business Central delete function
+        // Credentials.ObjNav.FnDelete{{ page_name }}Lines(Convert.ToInt32(lineNo), code);
+
+        return Json(new { message = "Line deleted successfully", success = true },
+            JsonRequestBehavior.AllowGet);
+    }
+    catch (Exception ex)
+    {
+        return Json(new { message = ex.Message.Replace("'", ""), success = false },
+            JsonRequestBehavior.AllowGet);
+    }
+}

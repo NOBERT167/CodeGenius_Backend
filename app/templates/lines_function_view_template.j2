@@ -1,0 +1,74 @@
+@model {{ model_name }}
+
+<div class="row">
+    {% for param in parameters %}{% if param.name.lower() != 'docno' and param.name.lower() != 'userid' and param.name.lower() != 'lineno' %}
+    <div class="col-md-6">
+        <div class="form-group">
+            @Html.Label("{{ param.display_name }}", htmlAttributes: new { @class = "control-label col-md-12" })
+
+            {% if param.name.lower() in ['accountno', 'fundingsource', 'voteitem', 'dim3', 'dim6'] %}
+            <!-- Dropdown field for {{ param.display_name }} -->
+            @Html.DropDownListFor(m => m.{{ param.csharp_name }}, Model.{{ param.csharp_name }}List,
+                "--Select {{ param.display_name }}--",
+                new {
+                    @id = "{{ param.name }}",
+                    @class = "form-control select2 custom-select"
+                })
+            {% elif param.type == 'DateTime' %}
+            <!-- Date field for {{ param.display_name }} -->
+            <input type="text" class="form-control" placeholder="dd/mm/yyyy" id="{{ param.name }}"
+                   onkeydown="return false;" autocomplete="off" />
+            {% else %}
+            <!-- Text/number field for {{ param.display_name }} -->
+            @Html.EditorFor(model => model.{{ param.csharp_name }},
+                new { htmlAttributes = new {
+                    @class = "form-control",
+                    @id = "{{ param.name }}",
+                    {% if param.type == 'decimal' or param.type == 'int' %}@type = "number"{% endif %}
+                }
+            })
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}{% endfor %}
+</div>
+
+<div align="center">
+    <input type="button" class="btn btn-primary waves-effect waves-light"
+           value="Submit {{ page_name }} Line" onclick="Submit{{ page_name }}Line();" />
+</div>
+
+<script>
+    $(document).ready(function () {
+        // Initialize select2 dropdowns
+        $('.select2').select2({
+            dropdownParent: $('#myModal')
+        });
+
+        // Initialize datepickers
+        {% for param in parameters %}{% if param.type == 'DateTime' %}
+        $('#{{ param.name }}').datepicker({
+            changeMonth: true,
+            changeYear: true,
+            autoclose: true,
+            yearRange: '-1:+2',
+            showOtherMonths: true,
+            dateFormat: 'dd/mm/yy'
+        });
+        {% endif %}{% endfor %}
+    });
+</script>
+
+<!-- REGION: Additional JavaScript Functions -->
+<!-- Uncomment and modify if you need custom JavaScript functions -->
+<!--
+<script>
+    function CustomValidation{{ page_name }}() {
+        // Add custom validation logic here
+    }
+
+    function Calculate{{ page_name }}() {
+        // Add custom calculation logic here
+    }
+</script>
+-->

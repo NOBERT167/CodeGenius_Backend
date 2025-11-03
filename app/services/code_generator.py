@@ -127,3 +127,168 @@ class CodeGenerator:
             return template.render(**context)
         except Exception as e:
             return f"// Error generating lines controller method: {str(e)}"
+
+    def generate_function_header_code(self, function_definition, page_name, function_name):
+        """Generate code for header function (without docNo parameter)"""
+        try:
+            # Parse function parameters
+            parameters = self._parse_function_parameters(function_definition)
+
+            context = {
+                'page_name': page_name,
+                'function_name': function_name,
+                'model_name': f"{page_name}ViewModel",
+                'parameters': parameters,
+                'has_docno_param': self._has_docno_parameter(parameters)
+            }
+
+            return {
+                'model': self._generate_function_model(context),
+                'controller': self._generate_function_controller(context),
+                'view': self._generate_function_view(context),
+                'javascript': self._generate_function_javascript(context)
+            }
+        except Exception as e:
+            raise Exception(f"Error generating function header code: {str(e)}")
+
+    def generate_function_line_code(self, function_definition, page_name, function_name, parent_entity):
+        """Generate code for line function (with docNo parameter)"""
+        try:
+            # Parse function parameters
+            parameters = self._parse_function_parameters(function_definition)
+
+            context = {
+                'page_name': page_name,
+                'function_name': function_name,
+                'parent_entity': parent_entity,
+                'model_name': f"{page_name}LinesViewModel",
+                'parameters': parameters,
+                'has_docno_param': self._has_docno_parameter(parameters)
+            }
+
+            return {
+                'model': self._generate_lines_function_model(context),
+                'controller_methods': self._generate_lines_function_controller(context),
+                'partial_view': self._generate_lines_function_view(context),
+                'javascript': self._generate_lines_function_javascript(context)
+            }
+        except Exception as e:
+            raise Exception(f"Error generating function line code: {str(e)}")
+
+    def _parse_function_parameters(self, function_definition):
+        """Parse SOAP function parameters from XML definition"""
+        parameters = []
+
+        try:
+            # Extract parameters from the complexType sequence
+            sequence = function_definition.get('complexType', {}).get('sequence', {})
+            elements = sequence.get('element', [])
+
+            if not isinstance(elements, list):
+                elements = [elements]
+
+            for element in elements:
+                param_name = element.get('@name', '')
+                param_type = element.get('@type', 'string')
+
+                # Map XML types to C# types
+                csharp_type = self._map_xml_type_to_csharp(param_type)
+
+                parameters.append({
+                    'name': param_name,
+                    'csharp_name': self._normalize_parameter_name(param_name),
+                    'display_name': self._format_display_name(param_name),
+                    'type': csharp_type,
+                    'xml_type': param_type,
+                    'is_required': element.get('@minOccurs', '1') == '1'
+                })
+
+        except Exception as e:
+            print(f"Error parsing function parameters: {e}")
+
+        return parameters
+
+    def _map_xml_type_to_csharp(self, xml_type):
+        """Map XML schema types to C# types"""
+        type_mapping = {
+            'string': 'string',
+            'decimal': 'decimal',
+            'int': 'int',
+            'integer': 'int',
+            'boolean': 'bool',
+            'date': 'DateTime',
+            'datetime': 'DateTime',
+            'double': 'double',
+            'float': 'float'
+        }
+        return type_mapping.get(xml_type, 'string')
+
+    def _normalize_parameter_name(self, name):
+        """Normalize parameter name to C# property naming convention"""
+        return ''.join(word.capitalize() for word in name.split('_'))
+
+    def _format_display_name(self, name):
+        """Format parameter name for display"""
+        return ' '.join(word.capitalize() for word in name.split('_'))
+
+    def _has_docno_parameter(self, parameters):
+        """Check if function has docNo parameter (indicates line function)"""
+        docno_indicators = ['docno', 'documentno', 'no', 'code']
+        return any(param['name'].lower() in docno_indicators for param in parameters)
+
+    # Template generation methods for functions
+    def _generate_function_model(self, context):
+        try:
+            template = self.env.get_template('function_model_template.j2')
+            return template.render(**context)
+        except Exception as e:
+            return f"// Error generating function model: {str(e)}"
+
+    def _generate_function_controller(self, context):
+        try:
+            template = self.env.get_template('function_controller_template.j2')
+            return template.render(**context)
+        except Exception as e:
+            return f"// Error generating function controller: {str(e)}"
+
+    def _generate_function_view(self, context):
+        try:
+            template = self.env.get_template('function_view_template.j2')
+            return template.render(**context)
+        except Exception as e:
+            return f"<!-- Error generating function view: {str(e)} -->"
+
+    def _generate_function_javascript(self, context):
+        try:
+            template = self.env.get_template('function_javascript_template.j2')
+            return template.render(**context)
+        except Exception as e:
+            return f"// Error generating function javascript: {str(e)}"
+
+    def _generate_lines_function_model(self, context):
+        try:
+            template = self.env.get_template('lines_function_model_template.j2')
+            return template.render(**context)
+        except Exception as e:
+            return f"// Error generating lines function model: {str(e)}"
+
+    def _generate_lines_function_controller(self, context):
+        try:
+            template = self.env.get_template('lines_function_controller_template.j2')
+            return template.render(**context)
+        except Exception as e:
+            return f"// Error generating lines function controller: {str(e)}"
+
+    def _generate_lines_function_view(self, context):
+        try:
+            template = self.env.get_template('lines_function_view_template.j2')
+            return template.render(**context)
+        except Exception as e:
+            return f"<!-- Error generating lines function view: {str(e)} -->"
+
+    def _generate_lines_function_javascript(self, context):
+        try:
+            template = self.env.get_template('lines_function_javascript_template.j2')
+            return template.render(**context)
+        except Exception as e:
+            return f"// Error generating lines function javascript: {str(e)}"

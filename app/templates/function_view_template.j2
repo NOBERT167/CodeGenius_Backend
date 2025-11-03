@@ -1,0 +1,36 @@
+@model {{ model_name }}
+
+<div class="row">
+    {% for param in parameters %}{% if param.name.lower() != 'docno' and param.name.lower() != 'userid' %}
+    <div class="col-md-6">
+        <div class="form-group">
+            @Html.Label("{{ param.display_name }}", htmlAttributes: new { @class = "control-label col-md-12" })
+            {% if param.type == 'DateTime' %}
+            <input type="text" class="form-control" placeholder="dd/mm/yyyy" id="{{ param.name }}" onkeydown="return false;" autocomplete="off" />
+            {% else %}
+            @Html.EditorFor(model => model.{{ param.csharp_name }}, new { htmlAttributes = new { @class = "form-control", @id = "{{ param.name }}" } })
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}{% endfor %}
+</div>
+
+<div align="center">
+    <input type="button" class="btn btn-primary waves-effect waves-light" value="Submit {{ page_name }}" onclick="Submit{{ page_name }}();" />
+</div>
+
+<script>
+    $(document).ready(function () {
+        // Initialize datepickers for DateTime fields
+        {% for param in parameters %}{% if param.type == 'DateTime' %}
+        $('#{{ param.name }}').datepicker({
+            changeMonth: true,
+            changeYear: true,
+            autoclose: true,
+            yearRange: '-1:+2',
+            showOtherMonths: true,
+            dateFormat: 'dd/mm/yy'
+        });
+        {% endif %}{% endfor %}
+    });
+</script>
