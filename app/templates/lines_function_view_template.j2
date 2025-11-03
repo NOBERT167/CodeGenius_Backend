@@ -5,7 +5,7 @@
     <div class="col-md-6">
         <div class="form-group">
             @Html.Label("{{ param.display_name }}", htmlAttributes: new { @class = "control-label col-md-12" })
-{% if param.name.lower() in ['accountno', 'fundingsource', 'voteitem', 'dim3', 'dim6'] %}
+{% if param.name.lower() in ['accountno', 'fundingsource', 'voteitem', 'dim3', 'dim6', 'empno'] %}
             @Html.DropDownListFor(m => m.{{ param.csharp_name }}, Model.{{ param.csharp_name }}List, "--Select {{ param.display_name }}--", new { @id = "{{ param.name }}", @class = "form-control select2 custom-select" })
 {% elif param.type == 'DateTime' %}
             <input type="text" class="form-control" placeholder="dd/mm/yyyy" id="{{ param.name }}" onkeydown="return false;" autocomplete="off" />

@@ -9,24 +9,25 @@ public ActionResult New{{ page_name }}Line(string docNo)
         var viewModel = new {{ model_name }}();
         Session["httpResponse"] = null;
 
-        viewModel.No = docNo;
+                //If you need dropdownlist uncomment this and replace with actual page names
+                //#region
+                //var glAccountList = new List<DropdownList>();
+                //var pageGlAccounts = "GLAccounts?$filter=Available_for_workplaning eq true&$format=json";
+                //var httpResponseDomains = Credentials.GetOdataData(pageGlAccounts);
+                //using (var streamReader = new StreamReader(httpResponseDomains.GetResponseStream()))
+                //{
+                //    var result = streamReader.ReadToEnd();
+                //    var details = JObject.Parse(result);
+                //    glAccountList.AddRange(from JObject config in details["value"] select new DropdownList { Text = $"{(string)config["No"]} - {(string)config["Name"]}", Value = (string)config["No"] });
+                //}
 
-{% for param in parameters %}{% if param.name.lower() in ['accountno', 'fundingsource', 'voteitem', 'dim3', 'dim6'] %}
-        /*
-        #region {{ param.name }} List
-        var {{ param.name }}List = new List<DropdownList>();
-        var page{{ param.csharp_name }} = "REPLACE_WITH_ODATA_PAGE_NAME?$filter=REPLACE_WITH_FILTER&$format=json";
-        var httpResponse{{ param.csharp_name }} = Credentials.GetOdataData(page{{ param.csharp_name }});
-        using (var streamReader = new StreamReader(httpResponse{{ param.csharp_name }}.GetResponseStream()))
-        {
-            var result = streamReader.ReadToEnd();
-            var details = JObject.Parse(result);
-            {{ param.name }}List.AddRange(from JObject config in details["value"] select new DropdownList { Text = $"{(string)config["No"]} - {(string)config["Name"]}", Value = (string)config["No"] });
-        }
-        viewModel.{{ param.csharp_name }}List = {{ param.name }}List.Select(x => new SelectListItem { Text = x.Text, Value = x.Value }).ToList();
-        #endregion
-        */
-{% endif %}{% endfor %}
+                //viewModel.GlAccountList = glAccountList.Select(x =>
+                //    new SelectListItem
+                //    {
+                //        Text = x.Text,
+                //        Value = x.Value
+                //    }).ToList();
+                //#endregion
 
         return PartialView("PartialViews/New{{ page_name }}Line", viewModel);
     }
@@ -55,7 +56,7 @@ public JsonResult Submit{{ page_name }}Line({{ model_name }} viewModel)
 {% for param in parameters %}{% if param.name.lower() == 'docno' %}viewModel.No{% elif param.name.lower() == 'userid' %}UserID{% else %}viewModel.{{ param.csharp_name }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}
         );
 
-        return Json(new { message = success ? "{{ page_name }} line submitted successfully" : "Failed to submit {{ page_name }} line", success = success }, JsonRequestBehavior.AllowGet);
+        return Json(new { message = success ? "{{ page_name }} line added successfully" : "Failed to add {{ page_name }} line", success = success }, JsonRequestBehavior.AllowGet);
     }
     catch (Exception ex)
     {
