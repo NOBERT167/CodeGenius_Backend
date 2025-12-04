@@ -263,18 +263,25 @@ namespace Latest_Staff_Portal.Controllers
 
         // LINES SECTION - UNCOMMENT AND IMPLEMENT WHEN LINES ARE NEEDED
         /*
-        public PartialViewResult {{ page_name }}Lines(string headerNo, string status)
+        public PartialViewResult {{ page_name }}Lines(string docNo, string status)
         {
             try
             {
                 ViewBag.Status = status;
-                var rsrceReq = $"{{ entity_name }}Lines?$filter=Document_No eq '{headerNo}'&$format=json";
+                // Use the detected primary key for filtering
+                {% if primary_key %}
+                var rsrceReq = $"{{ entity_name }}?$filter={{ primary_key.original_name }} eq '{docNo}'&$format=json";
+                {% else %}
+                // WARNING: No primary key detected, using 'Document_No' as default
+                var rsrceReq = $"{{ entity_name }}?$filter=Document_No eq '{docNo}'&$format=json";
+                {% endif %}
+
                 var httpResponse = Credentials.GetOdataData(rsrceReq);
 
                 using var streamReader = new StreamReader(httpResponse.GetResponseStream());
                 var result = streamReader.ReadToEnd();
 
-                var odataResponse = JsonConvert.DeserializeObject<ODataResponse<{{ page_name }}LineModel>>(result);
+                var odataResponse = JsonConvert.DeserializeObject<ODataResponse<{{ model_name }}>>(result);
                 var lines = odataResponse?.Value ?? [];
 
                 return PartialView("PartialViews/{{ page_name }}Lines", lines);

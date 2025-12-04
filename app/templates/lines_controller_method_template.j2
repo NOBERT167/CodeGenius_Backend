@@ -1,9 +1,10 @@
-        public PartialViewResult {{ page_name }}Lines(string headerNo, string status)
+        public PartialViewResult {{ page_name }}Lines(string docNo, string status)
         {
             try
             {
                 ViewBag.Status = status;
-                var rsrceReq = $"{{ entity_name }}?$filter=Document_No eq '{headerNo}'&$format=json";
+                //adjust filter based on foreign key of the header
+                var rsrceReq = $"{{ entity_name }}?$filter=Document_No eq '{docNo}'&$format=json";
                 var httpResponse = Credentials.GetOdataData(rsrceReq);
 
                 using var streamReader = new StreamReader(httpResponse.GetResponseStream());

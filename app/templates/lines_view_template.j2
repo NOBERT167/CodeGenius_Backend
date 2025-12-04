@@ -5,14 +5,10 @@
         <thead style="">
             <tr>{% for prop in properties %}
                 <th>{{ prop.display_name }}</th>{% endfor %}
-                <th>
-                    @{
-                        if (ViewBag.Status == "Open")
-                        {
-                            <div>Actions</div>
-                        }
+                @if (ViewBag.Status == "Open")
+                    {
+                        <th>Actions</th>
                     }
-                </th>
             </tr>
         </thead>
         <tbody>
@@ -22,33 +18,29 @@
                 {
                     <tr>{% for prop in properties %}
                         <td>@item.{{ prop.csharp_name }}</td>{% endfor %}
-                        <td>
-                            @{
-                                if (ViewBag.Status == "Open")
-                                {
-                                    <div style="text-align:right">
-                                        <button class="btn btn-danger" style="color:whitesmoke; border-radius:10px" onclick="Delete{{ page_name }}Line('@item.Line_No');">
-                                            <i class="fa fa-trash" aria-hidden="true"></i>
-                                            Delete Line
-                                        </button>
-                                    </div>
-                                }
+                        @if (ViewBag.Status == "Open")
+                            {
+                            <td>
+                                <div style="text-align:center">
+                                    <button class="btn btn-danger" style="color:whitesmoke; border-radius:10px" onclick="Delete{{ page_name }}Line('@item.Line_No');">
+                                        <i class="fa fa-trash" aria-hidden="true"></i>
+                                        Delete Line
+                                    </button>
+                                </div>
+                            </td>
                             }
-                        </td>
                     </tr>
                 }
             }
         </tbody>
     </table>
  <div align="right">
-     @{
-        if (ViewBag.Status == "Open")
+     @if (ViewBag.Status == "Open")
         {
             <button class="btn action-buttons" style="color:whitesmoke; border-radius:10px" onclick="Add{{ page_name }}Line();">
                 <i class="fa fa-plus-circle" aria-hidden="true"></i> Add Line
             </button>
         }
-    }
 </div>
 </div>
 <script>

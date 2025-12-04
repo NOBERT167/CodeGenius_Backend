@@ -140,7 +140,7 @@
             type: "GET",
             dataType: "html",
             url: "/{{ page_name }}/{{ page_name }}Lines",
-            data: { headerNo: Code, status: Status },
+            data: { docNo: Code, status: Status },
             success: function (data) {
                 $("#divLines").html(data);
                 HideProgress();
