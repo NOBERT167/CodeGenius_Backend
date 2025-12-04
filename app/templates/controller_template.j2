@@ -54,7 +54,7 @@ namespace Latest_Staff_Portal.Controllers
             {
                 var erroMsg = new Error();
                 erroMsg.Message = ex.Message.Replace("'", "");
-                return View("~/Views/Common/ErrorMessange.cshtml", erroMsg);
+                return PartialView("~/Views/Common/ErrorMessange.cshtml", erroMsg);
             }
         }
 
@@ -135,7 +135,7 @@ namespace Latest_Staff_Portal.Controllers
             catch (Exception ex)
             {
                 return Json(new { message = ex.Message.Replace("'", ""), success = false },
-                    JsonRequestBehavior.AllowGet);
+                    JsonRequestBehavior.AllowGet);a
             }
         }
 
@@ -180,6 +180,79 @@ namespace Latest_Staff_Portal.Controllers
 
                 return Json(new { message = "Approval Request cancelled successfully", success = true },
                     JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { message = ex.Message.Replace("'", ""), success = false },
+                    JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // Method to open update header form
+        public PartialViewResult Update{{ page_name }}Header(string docNo)
+        {
+            try
+            {
+                if (Session["Username"] == null)
+                    return PartialView("~/Views/Shared/Partial Views/ErroMessangeView.cshtml",
+                        new Error { Message = "Session expired. Please login again." });
+
+                var employee = Session["EmployeeData"] as EmployeeView;
+                var StaffNo = Session["Username"].ToString();
+
+                {% if primary_key %}
+                var rsrceReq = $"{{ entity_name }}?$filter={{ primary_key.original_name }} eq '{docNo}'&$format=json";
+                {% else %}
+                var rsrceReq = $"{{ entity_name }}?$filter=No eq '{docNo}'&$format=json";
+                {% endif %}
+
+                var httpResponse = Credentials.GetOdataData(rsrceReq);
+                using var streamReader = new StreamReader(httpResponse.GetResponseStream());
+                var result = streamReader.ReadToEnd();
+                var odataResponse = JsonConvert.DeserializeObject<ODataResponse<{{ model_name }}>>(result);
+                var document = odataResponse?.Value?.FirstOrDefault();
+
+                if (document == null)
+                {
+                    return PartialView("~/Views/Shared/Partial Views/ErroMessangeView.cshtml",
+                        new Error { Message = "Document not found" });
+                }
+
+                return PartialView("PartialViews/Update{{ page_name }}Header", document);
+            }
+            catch (Exception ex)
+            {
+                var erroMsg = new Error();
+                erroMsg.Message = ex.Message;
+                return PartialView("~/Views/Shared/Partial Views/ErroMessangeView.cshtml", erroMsg);
+            }
+        }
+
+        // Method to submit updated header
+        public JsonResult SubmitUpdated{{ page_name }}header({{ model_name }} viewModel)
+        {
+            try
+            {
+                var employee = Session["EmployeeData"] as EmployeeView;
+                var staffNo = Session["Username"].ToString();
+                var UserID = employee?.UserID;
+
+                if (string.IsNullOrEmpty(staffNo))
+                {
+                    return Json(new { message = "User session expired. Please login again.", success = false },
+                        JsonRequestBehavior.AllowGet);
+                }
+
+                // TODO: REPLACE WITH YOUR BUSINESS CENTRAL UPDATE FUNCTION
+                // Example: var success = Credentials.ObjNav.FnUpdate{{ page_name }}(viewModel.No, viewModel.Property1, viewModel.Property2, UserID);
+                // Example: var success = Credentials.ObjNav.Update{{ page_name }}(viewModel.{{ primary_key.csharp_name if primary_key else 'No' }}, viewModel.Field1, viewModel.Field2);
+
+                bool success = true; // Placeholder - replace with actual BC function call
+
+                return Json(new {
+                    message = success ? "{{ page_name }} header updated successfully" : "Failed to update {{ page_name }} header",
+                    success = success
+                }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {

@@ -1,4 +1,4 @@
-@model {{ model_name }}
+@model Latest_Staff_Portal.ViewModel.{{ model_name }}
 
 @{
     ViewBag.Title = "{{ page_name }}DocumentView";
@@ -21,15 +21,18 @@
         <div style="text-align:right">
             @if (Model.Status == "Open")
             {
-                <button class="action-buttons" onclick="ViewApprovalTrail('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
-                    <i class="fas fa-project-diagram menu-icon"></i> Approval Trail
-                </button>
-                <button class="action-buttons" onclick="SendDocApprovalRequest('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
+                <button class="btn action-buttons" onclick="SendDocApprovalRequest('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
                     <i class="fas fa-paper-plane" aria-hidden="true"></i> Send Approval Request
+                </button>
+                <button class="btn btn-secondary" onclick="Update{{ page_name }}Header('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
+                    <i class="fas fa-paper-plane" aria-hidden="true"></i> Update Header
                 </button>
             }
             else
             {
+                <button class="action-buttons" onclick="ViewApprovalTrail('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
+                    <i class="fas fa-project-diagram menu-icon"></i> Approval Trail
+                </button>
                 <button class="btn btn-danger" onclick="CancelDocApprovalRequest('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
                     <i class="fas fa-times menu-icon"></i> Cancel Approval Request
                 </button>
@@ -57,6 +60,72 @@
         </div>
     </div>
 </div>
+
+@* //////////////////////View Document//////////////////////////// *@
+<div class="modal fade" id="myModalAttachment" tabindex="-1" role="dialog" aria-labelledby="myModalAttachmentLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl" role="document">
+        <div class="modal-content bg-white">
+            <div class="modal-header">
+                <h4 class="modal-title" id="myModalAttachmentLabel"></h4>
+                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+
+            </div>
+            <div class="modal-body" id="modalAttachmentBody">
+                <iframe id="iframe" style="width:100%;height:75vh;" frameborder="0"></iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger waves-effect" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@*//////////////////////Approval Trail Modal////////////////////////////*@
+<div class="modal fade" id="aprovalTrailModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content bg-white">
+            <div class="modal-header">
+                <h4 class="modal-title" id="approvalTitle"></h4>
+                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="approvalTrailBody">
+                <iframe id="iframe" style="width:100%;height:450px"></iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger waves-effect " data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@*//////////////////////Update header modal ////////////////////////////*@
+<div class="modal fade" id="updateModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">
+                    <label id="labelF"></label>
+                </h4>
+                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="updateModalBody">
+            </div>
+            <div class="modal-footer">
+                <div class="text-center">
+                    <input type="button" class="btn btn-primary waves-effect waves-light" value="Update" onclick="SubmitUpdated{{ page_name }}header();" />
+                </div>
+                <button type="button" class="btn btn-danger waves-effect " data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <script src="~/assets/js/ShowProgression.js"></script>
 <script type="text/javascript">
@@ -199,4 +268,107 @@
             }
         });
     };
+
+    var Update{{ page_name }}Header = function (Code) {
+        $("#labelF").text("Update {{ page_name }} header");
+        ShowProgress();
+        $.ajax({
+            async: true,
+            type: "POST",
+            datatype: "json",
+            contentType: "application/json; charset = utf-8",
+            processData: false,
+            data: JSON.stringify({ docNo: Code }),
+            url: '/{{ page_name }}/Update{{ page_name }}Header',
+            success: function (data) {
+                $("#updateModalBody").html(data);
+                HideProgress();
+                $("#updateModal").modal("show");
+            },
+            error: function (err) {
+                HideProgress();
+                Swal.fire('Warning', err, 'warning');
+            }
+        });
+    };
+
+    // Submit updated header function
+    var SubmitUpdated{{ page_name }}header = function () {
+        var isValid = true;
+
+        // TODO: REPLACE THESE WITH ACTUAL PROPERTIES FROM YOUR FORM
+        // Example validation - adjust based on your actual form fields
+        var prop1 = $("#prop1").val();
+        if (!prop1) {
+            Swal.fire('Warning', 'Please enter Property 1', 'warning');
+            isValid = false;
+        }
+
+        var prop2 = $("#prop2").val();
+        if (!prop2) {
+            Swal.fire('Warning', 'Please enter Property 2', 'warning');
+            isValid = false;
+        }
+
+        if (!isValid) {
+            return;
+        }
+
+        var {{ page_name|lower }} = {
+            // TODO: MAP ALL PROPERTIES FROM YOUR FORM
+            Property1: prop1,
+            Property2: prop2,
+            {{ primary_key.csharp_name if primary_key else 'No' }}: `@Model.{{ primary_key.csharp_name if primary_key else 'No' }}`
+            // Add other properties as needed
+        };
+        console.log({{ page_name|lower }});
+
+        ShowProgress();
+        $.ajax({
+            type: "POST",
+            url: "/{{ page_name }}/SubmitUpdated{{ page_name }}header",
+            data: JSON.stringify({{ page_name|lower }}),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json",
+            success: function (data) {
+                HideProgress();
+                Swal.fire('Success', data.message, 'success')
+                    .then(function () {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire('Warning', data.message, 'warning');
+                }
+            },
+            error: function (err) {
+                HideProgress();
+                Swal.fire('Warning', err.responseText, 'warning');
+            }
+        });
+    }
+
+     var ViewApprovalTrail = function (Code) {
+     $("#approvalTitle").text("Approval Trail");
+     ShowProgress();
+     $.ajax({
+         async: true,
+         type: "POST",
+         datatype: "json",
+         data: JSON.stringify({ DocNo: Code, RecID: Code }),
+         contentType: "application/json; charset = utf-8",
+         processData: false,
+         url: '/Common/DocumentApprovalTrail',
+         success: function (data) {
+             $("#approvalTrailBody").html(data);
+             HideProgress();
+             $("#myModalLinks").modal("hide");
+             $("#aprovalTrailModal").modal("show");
+         },
+         error: function (err) {
+             HideProgress();
+             Swal.fire('Warning', err, 'warning');
+         }
+     });
+ }
+
 </script>

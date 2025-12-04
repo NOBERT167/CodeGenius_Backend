@@ -1,4 +1,4 @@
-@model {{ model_name }}
+@model Latest_Staff_Portal.ViewModel.{{ model_name }}
 
 <div class="row">
 {% for param in parameters %}{% if param.name.lower() != 'docno' and param.name.lower() != 'userid' and param.name.lower() != 'lineno' %}
@@ -17,8 +17,9 @@
 {% endif %}{% endfor %}
 </div>
 
-<div align="center">
+<div class="modal-footer">
     <input type="button" class="btn btn-primary waves-effect waves-light" value="Submit {{ page_name }} Line" onclick="Submit{{ page_name }}Line();" />
+    <button type="button" class="btn btn-danger waves-effect" data-bs-dismiss="modal">Close</button>
 </div>
 
 <script>
