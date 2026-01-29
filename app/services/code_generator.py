@@ -1,22 +1,35 @@
 from jinja2 import Environment, FileSystemLoader
 import os
-from .function_parser import FunctionParser
+from typing import Optional
 
-class CodeGenerator:
+
+class CodeGeneratorWithFilters:
     def __init__(self):
-        # self.env = Environment(loader=FileSystemLoader("templates"))
-        # Get the directory where this file lives (app/services/)
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        # Move up one level (to app/) and join 'templates'
         templates_path = os.path.join(base_dir, "..", "templates")
-
-        # Normalize the path for Windows
         templates_path = os.path.normpath(templates_path)
-
         self.env = Environment(loader=FileSystemLoader(templates_path))
-    def generate_full_code(self, parser, page_name, entity_name):
-        """Generate complete MVC code structure"""
+
+    def generate_full_code(self, parser, page_name, entity_name, filters_config=None):
+        """Generate complete MVC code structure with optional filters"""
         try:
+            # Determine if filters are enabled
+            filters_enabled = filters_config and filters_config.get('enabled', False)
+
+            # Extract filter configurations
+            date_filter = None
+            status_filter = None
+            custom_filters = []
+
+            if filters_enabled:
+                if filters_config.get('date_range_filter'):
+                    date_filter = filters_config['date_range_filter']
+
+                if filters_config.get('approval_status_filter'):
+                    status_filter = filters_config['approval_status_filter']
+
+                custom_filters = filters_config.get('custom_filters', [])
+
             context = {
                 'page_name': page_name,
                 'entity_name': entity_name,
@@ -26,14 +39,19 @@ class CodeGenerator:
                 'document_info': parser.document_info,
                 'primary_key': parser.document_info.get('primary_key'),
                 'user_filter_fields': parser.document_info.get('user_filter_fields', []),
-                'datatable_properties': parser.document_info.get('datatable_properties', [])
+                'datatable_properties': parser.document_info.get('datatable_properties', []),
+                # Filter-related context
+                'filters_enabled': filters_enabled,
+                'date_filter': date_filter,
+                'status_filter': status_filter,
+                'custom_filters': custom_filters
             }
 
             return {
                 'model': self._generate_model(context),
                 'controller': self._generate_controller(context),
                 'main_view': self._generate_main_view(context),
-                'list_view': self._generate_list_view(context),
+                'list_view': self._generate_list_view(context) if not filters_enabled else None,
                 'document_view': self._generate_document_view(context)
             }
         except Exception as e:
@@ -42,7 +60,6 @@ class CodeGenerator:
     def generate_lines_code(self, parser, page_name, entity_name, parent_entity):
         """Generate only lines code"""
         try:
-            # Filter out primary key properties for the view
             non_primary_properties = [prop for prop in parser.properties if not prop.get('is_primary_key')]
 
             context = {
@@ -50,7 +67,7 @@ class CodeGenerator:
                 'entity_name': entity_name,
                 'parent_entity': parent_entity,
                 'model_name': f"{page_name}LinesModel",
-                'properties': non_primary_properties,  # Use filtered properties
+                'properties': non_primary_properties,
                 'non_primary_count': len(non_primary_properties)
             }
 
@@ -59,7 +76,7 @@ class CodeGenerator:
                     'page_name': page_name,
                     'entity_name': entity_name,
                     'model_name': f"{page_name}LinesModel",
-                    'properties': parser.properties  # Keep all properties for model
+                    'properties': parser.properties
                 }),
                 'partial_view': self._generate_lines_view(context),
                 'controller_method': self._generate_lines_controller_method({
@@ -81,14 +98,22 @@ class CodeGenerator:
 
     def _generate_controller(self, context):
         try:
-            template = self.env.get_template('controller_template.j2')
+            # Use different template based on filter configuration
+            if context.get('filters_enabled'):
+                template = self.env.get_template('controller_with_filters_template.j2')
+            else:
+                template = self.env.get_template('controller_template.j2')
             return template.render(**context)
         except Exception as e:
             return f"// Error generating controller: {str(e)}"
 
     def _generate_main_view(self, context):
         try:
-            template = self.env.get_template('main_view_template.j2')
+            # Use different template based on filter configuration
+            if context.get('filters_enabled'):
+                template = self.env.get_template('main_view_with_filters_template.j2')
+            else:
+                template = self.env.get_template('main_view_template.j2')
             return template.render(**context)
         except Exception as e:
             return f"<!-- Error generating main view: {str(e)} -->"
@@ -128,11 +153,11 @@ class CodeGenerator:
         except Exception as e:
             return f"// Error generating lines controller method: {str(e)}"
 
-    # Update the function generation methods
+    # Function generation methods (unchanged)
     def generate_function_header_code(self, xml_string, page_name, function_name):
-        """Generate code for header function (without docNo parameter)"""
+        """Generate code for header function"""
         try:
-            # Parse XML string
+            from .function_parser import FunctionParser
             parser = FunctionParser(xml_string).parse()
             parameters = parser.get_parameters()
 
@@ -154,9 +179,9 @@ class CodeGenerator:
             raise Exception(f"Error generating function header code: {str(e)}")
 
     def generate_function_line_code(self, xml_string, page_name, function_name, parent_entity):
-        """Generate code for line function (with docNo parameter)"""
+        """Generate code for line function"""
         try:
-            # Parse XML string
+            from .function_parser import FunctionParser
             parser = FunctionParser(xml_string).parse()
             parameters = parser.get_parameters()
 
@@ -179,72 +204,10 @@ class CodeGenerator:
             raise Exception(f"Error generating function line code: {str(e)}")
 
     def _has_docno_parameter(self, parameters):
-        """Check if function has docNo parameter (indicates line function)"""
+        """Check if function has docNo parameter"""
         docno_indicators = ['docno', 'documentno', 'no', 'code']
         return any(param['name'].lower() in docno_indicators for param in parameters)
 
-    def _parse_function_parameters(self, function_definition):
-        """Parse SOAP function parameters from XML definition"""
-        parameters = []
-
-        try:
-            # Extract parameters from the complexType sequence
-            sequence = function_definition.get('complexType', {}).get('sequence', {})
-            elements = sequence.get('element', [])
-
-            if not isinstance(elements, list):
-                elements = [elements]
-
-            for element in elements:
-                param_name = element.get('@name', '')
-                param_type = element.get('@type', 'string')
-
-                # Map XML types to C# types
-                csharp_type = self._map_xml_type_to_csharp(param_type)
-
-                parameters.append({
-                    'name': param_name,
-                    'csharp_name': self._normalize_parameter_name(param_name),
-                    'display_name': self._format_display_name(param_name),
-                    'type': csharp_type,
-                    'xml_type': param_type,
-                    'is_required': element.get('@minOccurs', '1') == '1'
-                })
-
-        except Exception as e:
-            print(f"Error parsing function parameters: {e}")
-
-        return parameters
-
-    def _map_xml_type_to_csharp(self, xml_type):
-        """Map XML schema types to C# types"""
-        type_mapping = {
-            'string': 'string',
-            'decimal': 'decimal',
-            'int': 'int',
-            'integer': 'int',
-            'boolean': 'bool',
-            'date': 'DateTime',
-            'datetime': 'DateTime',
-            'double': 'double',
-            'float': 'float'
-        }
-        return type_mapping.get(xml_type, 'string')
-
-    def _normalize_parameter_name(self, name):
-        """Normalize parameter name to C# property naming convention"""
-        return ''.join(word.capitalize() for word in name.split('_'))
-
-    def _format_display_name(self, name):
-        """Format parameter name for display"""
-        return ' '.join(word.capitalize() for word in name.split('_'))
-
-    def _has_docno_parameter(self, parameters):
-        """Check if function has docNo parameter (indicates line function)"""
-        docno_indicators = ['docno', 'documentno', 'no', 'code']
-        return any(param['name'].lower() in docno_indicators for param in parameters)
-
-    # Template generation methods for functions
     def _generate_function_model(self, context):
         try:
             template = self.env.get_template('function_model_template.j2')
