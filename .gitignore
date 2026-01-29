@@ -1,0 +1,37 @@
+# --------------------
+# Python bytecode
+# --------------------
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --------------------
+# Virtual environments
+# --------------------
+venv/
+env/
+.venv/
+
+# --------------------
+# FastAPI / Python
+# --------------------
+*.log
+.env
+.env.*
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --------------------
+# IDEs & editors
+# --------------------
+.vscode/
+.idea/
+*.swp
+
+# --------------------
+# OS files
+# --------------------
+.DS_Store
+Thumbs.db
