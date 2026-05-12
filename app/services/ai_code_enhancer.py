@@ -1,6 +1,12 @@
 import asyncio
 import os
 from typing import Any, Dict, Optional
+from dotenv import load_dotenv
+    
+from dotenv import load_dotenv
+from openai import AsyncOpenAI
+
+load_dotenv()
 
 from openai import AsyncOpenAI
 
