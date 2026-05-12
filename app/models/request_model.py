@@ -24,6 +24,15 @@ class FiltersConfiguration(BaseModel):
     approval_status_filter: Optional[FilterConfig] = None
     custom_filters: Optional[List[FilterConfig]] = Field(default_factory=list)
 
+
+class AIConfiguration(BaseModel):
+    """Optional AI enhancement configuration for generated code"""
+    enabled: bool = Field(False, description="Whether to apply AI enhancement after base generation")
+    prompt: Optional[str] = Field(None, description="User instruction to refine generated code")
+    model: Optional[str] = Field("gpt-4.1-mini", description="OpenAI model to use")
+    temperature: float = Field(0.2, ge=0.0, le=1.0, description="Sampling temperature")
+    max_output_tokens: int = Field(12000, ge=500, le=64000, description="Maximum output tokens")
+
 class FullCodeRequest(BaseModel):
     odata: Dict[str, Any]
     page_name: str
@@ -31,6 +40,10 @@ class FullCodeRequest(BaseModel):
     filters: Optional[FiltersConfiguration] = Field(
         default_factory=lambda: FiltersConfiguration(enabled=False),
         description="Filter configuration (optional)"
+    )
+    ai: Optional[AIConfiguration] = Field(
+        default_factory=lambda: AIConfiguration(enabled=False),
+        description="AI enhancement configuration (optional)"
     )
 
 class LinesCodeRequest(BaseModel):

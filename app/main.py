@@ -5,6 +5,7 @@ import traceback
 
 from app.services.odata_parser import ODataParser
 from app.services.code_generator import CodeGeneratorWithFilters
+from app.services.ai_code_enhancer import AICodeEnhancer
 from app.models.request_model import (
     FullCodeRequest,
     LinesCodeRequest,
@@ -22,6 +23,7 @@ app = FastAPI(
 )
 
 code_gen = CodeGeneratorWithFilters()
+ai_enhancer = AICodeEnhancer()
 
 app.add_middleware(
     CORSMiddleware,
@@ -113,6 +115,35 @@ async def generate_full_code(request: FullCodeRequest):
             filters_config
         )
 
+        ai_enabled = bool(request.ai and request.ai.enabled)
+        ai_applied = False
+        ai_notes = None
+        ai_model = None
+
+        if ai_enabled:
+            parser_summary = {
+                "properties": parser.properties,
+                "primary_key": parser.document_info.get('primary_key'),
+                "user_filter_fields": parser.document_info.get('user_filter_fields', []),
+                "datatable_properties": parser.document_info.get('datatable_properties', [])
+            }
+
+            enhanced_result = ai_enhancer.enhance_full_code(
+                generated_code=generated_code,
+                page_name=request.page_name,
+                entity_name=entity_name,
+                parser_summary=parser_summary,
+                user_prompt=request.ai.prompt if request.ai else None,
+                model=request.ai.model if request.ai else None,
+                temperature=request.ai.temperature if request.ai else 0.2,
+                max_output_tokens=request.ai.max_output_tokens if request.ai else 12000
+            )
+
+            generated_code = enhanced_result["code"]
+            ai_notes = enhanced_result.get("notes")
+            ai_model = enhanced_result.get("model")
+            ai_applied = True
+
         return {
             "success": True,
             "code": generated_code,
@@ -122,9 +153,15 @@ async def generate_full_code(request: FullCodeRequest):
                                        parser.document_info.get('user_filter_fields', [])],
                 "datatable_fields": [f.get('original_name') for f in
                                      parser.document_info.get('datatable_properties', [])],
-                "filters_enabled": request.filters.enabled if request.filters else False
+                "filters_enabled": request.filters.enabled if request.filters else False,
+                "ai_enabled": ai_enabled,
+                "ai_applied": ai_applied,
+                "ai_model": ai_model,
+                "ai_notes": ai_notes
             },
-            "message": "Code generated successfully with" + (" filters" if filters_config else "out filters")
+            "message": "Code generated successfully with" +
+                       (" filters" if filters_config else "out filters") +
+                       (" and AI enhancement" if ai_applied else "")
         }
 
     except Exception as e:
