@@ -26,12 +26,49 @@ class FiltersConfiguration(BaseModel):
 
 
 class AIConfiguration(BaseModel):
-    """Optional AI enhancement configuration for generated code"""
+    """AI enhancement for full MVC generation"""
     enabled: bool = Field(False, description="Whether to apply AI enhancement after base generation")
     prompt: Optional[str] = Field(None, description="User instruction to refine generated code")
-    model: Optional[str] = Field("gpt-4.1-mini", description="OpenAI model to use")
-    temperature: float = Field(0.2, ge=0.0, le=1.0, description="Sampling temperature")
-    max_output_tokens: int = Field(12000, ge=500, le=64000, description="Maximum output tokens")
+
+
+class DropdownField(BaseModel):
+    """A form field that should be rendered as a dropdown"""
+    field_name: str = Field(..., description="Parameter/field name as it appears in the function definition")
+    type: str = Field(
+        "static",
+        description="'static' for hardcoded options (NAV enums), 'odata' for OData-fetched list"
+    )
+    # --- Static dropdown fields ---
+    options: Optional[List[Dict[str, str]]] = Field(
+        default_factory=list,
+        description="For type='static': list of {text, value} pairs. Values are typically integers as strings."
+    )
+    # --- OData dropdown fields ---
+    odata_endpoint: Optional[str] = Field(
+        None,
+        description="For type='odata': OData page/filter, e.g. \"FixedAssetsList?$filter=Asset_Type eq 'Property'\""
+    )
+    odata_text_template: Optional[str] = Field(
+        None,
+        description="For type='odata': text template using field names in braces, e.g. '{No} - {Description}'"
+    )
+    odata_value_field: Optional[str] = Field(
+        None,
+        description="For type='odata': the OData field used as the option value, e.g. 'No'"
+    )
+
+
+class FunctionAIConfiguration(BaseModel):
+    """AI enhancement for function-header and function-line generation"""
+    enabled: bool = Field(False)
+    style_prompt: Optional[str] = Field(
+        None,
+        description="Describe how the form should look, e.g. 'Use Bootstrap card with blue header and two-column layout'"
+    )
+    dropdown_fields: Optional[List[DropdownField]] = Field(
+        default_factory=list,
+        description="Fields that should be rendered as dropdowns instead of text inputs"
+    )
 
 class FullCodeRequest(BaseModel):
     odata: Dict[str, Any]
@@ -56,9 +93,15 @@ class FunctionHeaderRequest(BaseModel):
     function_definition: str
     page_name: str
     function_name: str
+    ai: Optional[FunctionAIConfiguration] = Field(
+        default_factory=lambda: FunctionAIConfiguration(enabled=False)
+    )
 
 class FunctionLineRequest(BaseModel):
     function_definition: str
     page_name: str
     function_name: str
     parent_entity: str
+    ai: Optional[FunctionAIConfiguration] = Field(
+        default_factory=lambda: FunctionAIConfiguration(enabled=False)
+    )

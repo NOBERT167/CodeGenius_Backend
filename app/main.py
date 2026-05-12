@@ -134,9 +134,6 @@ async def generate_full_code(request: FullCodeRequest):
                 entity_name=entity_name,
                 parser_summary=parser_summary,
                 user_prompt=request.ai.prompt if request.ai else None,
-                model=request.ai.model if request.ai else None,
-                temperature=request.ai.temperature if request.ai else 0.2,
-                max_output_tokens=request.ai.max_output_tokens if request.ai else 4000
             )
 
             generated_code = enhanced_result["code"]
@@ -220,10 +217,37 @@ async def generate_function_header(request: FunctionHeaderRequest):
             request.function_name
         )
 
+        ai_applied = False
+        ai_notes = None
+        ai_model = None
+
+        if request.ai and request.ai.enabled:
+            dropdown_dicts = [
+                df.dict() for df in request.ai.dropdown_fields
+            ] if request.ai.dropdown_fields else []
+
+            enhanced_result = await ai_enhancer.enhance_function_code(
+                generated_code=generated_code,
+                page_name=request.page_name,
+                function_name=request.function_name,
+                style_prompt=request.ai.style_prompt,
+                dropdown_fields=dropdown_dicts,
+            )
+            generated_code = enhanced_result["code"]
+            ai_notes = enhanced_result.get("notes")
+            ai_model = enhanced_result.get("model")
+            ai_applied = True
+
         return {
             "success": True,
             "code": generated_code,
+            "metadata": {
+                "ai_applied": ai_applied,
+                "ai_model": ai_model,
+                "ai_notes": ai_notes,
+            },
             "message": "Function header code generated successfully"
+                       + (" with AI enhancement" if ai_applied else ""),
         }
 
     except Exception as e:
@@ -244,10 +268,37 @@ async def generate_function_line(request: FunctionLineRequest):
             request.parent_entity
         )
 
+        ai_applied = False
+        ai_notes = None
+        ai_model = None
+
+        if request.ai and request.ai.enabled:
+            dropdown_dicts = [
+                df.dict() for df in request.ai.dropdown_fields
+            ] if request.ai.dropdown_fields else []
+
+            enhanced_result = await ai_enhancer.enhance_function_code(
+                generated_code=generated_code,
+                page_name=request.page_name,
+                function_name=request.function_name,
+                style_prompt=request.ai.style_prompt,
+                dropdown_fields=dropdown_dicts,
+            )
+            generated_code = enhanced_result["code"]
+            ai_notes = enhanced_result.get("notes")
+            ai_model = enhanced_result.get("model")
+            ai_applied = True
+
         return {
             "success": True,
             "code": generated_code,
+            "metadata": {
+                "ai_applied": ai_applied,
+                "ai_model": ai_model,
+                "ai_notes": ai_notes,
+            },
             "message": "Function line code generated successfully"
+                       + (" with AI enhancement" if ai_applied else ""),
         }
 
     except Exception as e:
