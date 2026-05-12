@@ -1,23 +1,30 @@
-import json
+import asyncio
 import os
 from typing import Any, Dict, Optional
 
-from openai import OpenAI
+from openai import AsyncOpenAI
+
+_SECTION_LABELS = {
+    "model": "C# ViewModel class",
+    "controller": "C# MVC Controller",
+    "main_view": "Razor main/index view (.cshtml)",
+    "list_view": "Razor list partial view (.cshtml)",
+    "document_view": "Razor document detail view (.cshtml)",
+}
 
 
 class AICodeEnhancer:
-    """Enhances generated code by applying user instructions with OpenAI."""
+    """Enhances generated MVC code sections in parallel using OpenAI."""
 
     def __init__(self):
-        # self.api_key = os.getenv("OPENAI_API_KEY")
-        self.api_key = "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"
+        self.api_key = os.getenv("OPENAI_API_KEY")
         self.default_model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
         self.base_url = os.getenv("OPENAI_BASE_URL")
 
     def is_available(self) -> bool:
         return bool(self.api_key)
 
-    def enhance_full_code(
+    async def enhance_full_code(
         self,
         generated_code: Dict[str, Optional[str]],
         page_name: str,
@@ -26,8 +33,13 @@ class AICodeEnhancer:
         user_prompt: Optional[str],
         model: Optional[str] = None,
         temperature: float = 0.2,
-        max_output_tokens: int = 12000,
+        max_output_tokens: int = 4000,
     ) -> Dict[str, Any]:
+        """
+        Refine all MVC code sections in parallel.
+        Each section is a separate async OpenAI call so they run concurrently —
+        total latency ≈ slowest single section instead of the sum of all sections.
+        """
         if not self.is_available():
             raise ValueError("OPENAI_API_KEY is not configured on the server")
 
@@ -37,64 +49,68 @@ class AICodeEnhancer:
             else "Improve maintainability, naming clarity, null safety, and validation without changing behavior."
         )
 
-        system_prompt = (
-            "You are an expert C# ASP.NET MVC code assistant. "
-            "You will receive generated code parts. Return JSON only with keys: "
-            "model, controller, main_view, list_view, document_view, notes. "
-            "Keep existing architecture and endpoint names. "
-            "Do not remove required code paths. "
-            "If a section should remain unchanged, return the original content for that section."
-        )
-
-        user_content = {
-            "task": "Refine generated MVC code",
-            "page_name": page_name,
-            "entity_name": entity_name,
-            "instruction": instruction,
-            "parser_summary": parser_summary,
-            "generated_code": generated_code,
-        }
+        resolved_model = model or self.default_model
 
         client_kwargs: Dict[str, Any] = {"api_key": self.api_key}
         if self.base_url:
             client_kwargs["base_url"] = self.base_url
 
-        client = OpenAI(**client_kwargs)
+        client = AsyncOpenAI(**client_kwargs)
 
-        response = client.chat.completions.create(
-            model=model or self.default_model,
-            temperature=temperature,
-            max_tokens=max_output_tokens,
-            response_format={"type": "json_object"},
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": json.dumps(user_content)},
-            ],
-        )
+        async def _enhance_section(section_key: str, section_code: str) -> tuple[str, str]:
+            """Refine one code section. Returns (key, refined_code)."""
+            label = _SECTION_LABELS.get(section_key, section_key)
+            system_msg = (
+                f"You are an expert C# ASP.NET MVC code assistant. "
+                f"You will receive one {label} file. "
+                f"Apply the instruction below, then return ONLY the improved code — "
+                f"no explanation, no markdown fences, no JSON wrapper. "
+                f"Preserve all existing endpoint names, method signatures, and architecture. "
+                f"Do not remove any existing functionality.\n\n"
+                f"Instruction: {instruction}"
+            )
+            user_msg = (
+                f"Page name: {page_name}\n"
+                f"Entity name: {entity_name}\n\n"
+                f"{section_code}"
+            )
+            response = await client.chat.completions.create(
+                model=resolved_model,
+                temperature=temperature,
+                max_tokens=max_output_tokens,
+                messages=[
+                    {"role": "system", "content": system_msg},
+                    {"role": "user", "content": user_msg},
+                ],
+            )
+            refined = response.choices[0].message.content
+            return section_key, (refined.strip() if refined else section_code)
 
-        content = response.choices[0].message.content
-        if not content:
-            raise ValueError("OpenAI returned an empty response")
-
-        try:
-            parsed = json.loads(content)
-        except json.JSONDecodeError as exc:
-            raise ValueError(f"OpenAI returned invalid JSON: {str(exc)}") from exc
-
-        updated_code: Dict[str, Optional[str]] = {}
         code_keys = ["model", "controller", "main_view", "list_view", "document_view"]
 
-        for key in code_keys:
-            candidate = parsed.get(key)
-            if candidate is None:
-                updated_code[key] = generated_code.get(key)
-            else:
-                updated_code[key] = str(candidate)
+        # Only create tasks for sections that actually have content
+        tasks = [
+            _enhance_section(key, generated_code[key])
+            for key in code_keys
+            if generated_code.get(key)
+        ]
 
-        notes = parsed.get("notes")
+        # All sections run in parallel — total latency ≈ max(individual latencies)
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        updated_code: Dict[str, Optional[str]] = {k: generated_code.get(k) for k in code_keys}
+        errors = []
+        for result in results:
+            if isinstance(result, Exception):
+                errors.append(str(result))
+            else:
+                key, code = result
+                updated_code[key] = code
+
+        notes = f"AI errors on some sections: {'; '.join(errors)}" if errors else None
 
         return {
             "code": updated_code,
-            "notes": str(notes) if notes is not None else None,
-            "model": model or self.default_model,
+            "notes": notes,
+            "model": resolved_model,
         }

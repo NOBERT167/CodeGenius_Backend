@@ -128,7 +128,7 @@ async def generate_full_code(request: FullCodeRequest):
                 "datatable_properties": parser.document_info.get('datatable_properties', [])
             }
 
-            enhanced_result = ai_enhancer.enhance_full_code(
+            enhanced_result = await ai_enhancer.enhance_full_code(
                 generated_code=generated_code,
                 page_name=request.page_name,
                 entity_name=entity_name,
@@ -136,7 +136,7 @@ async def generate_full_code(request: FullCodeRequest):
                 user_prompt=request.ai.prompt if request.ai else None,
                 model=request.ai.model if request.ai else None,
                 temperature=request.ai.temperature if request.ai else 0.2,
-                max_output_tokens=request.ai.max_output_tokens if request.ai else 12000
+                max_output_tokens=request.ai.max_output_tokens if request.ai else 4000
             )
 
             generated_code = enhanced_result["code"]
