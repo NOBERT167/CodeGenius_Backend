@@ -54,7 +54,7 @@ namespace Latest_Staff_Portal.Controllers
                 {% if loop.first %}
                 if (role != null && (role.Station_Accountant || role.HQ_Accountant))
                 {
-                    filters.Add($"{{ user_filter.original_name }} eq '{dimension1}'");
+                    filters.Add($"Global_Dimension_1_Code eq '{dimension1}'");
                 }
                 else
                 {

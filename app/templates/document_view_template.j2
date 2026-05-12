@@ -30,14 +30,14 @@
             }
             else
             {
-                <button class="action-buttons" onclick="ViewApprovalTrail('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
+                <button class="btn action-buttons" onclick="ViewApprovalTrail('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
                     <i class="fas fa-project-diagram menu-icon"></i> Approval Trail
                 </button>
                 <button class="btn btn-danger" onclick="CancelDocApprovalRequest('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
                     <i class="fas fa-times menu-icon"></i> Cancel Approval Request
                 </button>
             }
-            <button class="action-buttons" onclick="ViewDocComments('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
+            <button class="btn action-buttons" onclick="ViewDocComments('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
                 <i class="fa fa-list-ol" aria-hidden="true"></i> Comments
             </button>
         </div>
@@ -332,10 +332,12 @@
             dataType: "json",
             success: function (data) {
                 HideProgress();
-                Swal.fire('Success', data.message, 'success')
-                    .then(function () {
-                        location.reload();
-                    });
+                if (data.success) {
+                    $("#updateModal").modal("hide");
+                    Swal.fire('Success', data.message, 'success')
+                        .then(function () {
+                            window.location.reload();
+                        });
                 } else {
                     Swal.fire('Warning', data.message, 'warning');
                 }
