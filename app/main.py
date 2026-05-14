@@ -211,7 +211,10 @@ async def generate_full_code(request: FullCodeRequest):
                                        parser.document_info.get('user_filter_fields', [])],
                 "datatable_fields": [f.get('original_name') for f in
                                      parser.document_info.get('datatable_properties', [])],
-                "filters_enabled": request.filters.enabled if request.filters else False
+                "filters_enabled": request.filters.enabled if request.filters else False,
+                "ai_applied": ai_applied,
+                "ai_notes": ai_notes,
+                "ai_model": ai_model,
             },
             "message": "Code generated successfully with" + (" filters" if filters_config else "out filters")
         }
@@ -298,6 +301,11 @@ async def generate_function_header(request: FunctionHeaderRequest):
         return {
             "success": True,
             "code": generated_code,
+            "metadata": {
+                "ai_applied": ai_applied,
+                "ai_notes": ai_notes,
+                "ai_model": ai_model,
+            },
             "message": "Function header code generated successfully"
         }
 
@@ -344,6 +352,11 @@ async def generate_function_line(request: FunctionLineRequest):
         return {
             "success": True,
             "code": generated_code,
+            "metadata": {
+                "ai_applied": ai_applied,
+                "ai_notes": ai_notes,
+                "ai_model": ai_model,
+            },
             "message": "Function line code generated successfully"
         }
 
