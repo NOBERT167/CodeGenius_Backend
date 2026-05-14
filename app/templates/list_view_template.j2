@@ -1,5 +1,23 @@
 @model IEnumerable<Latest_Staff_Portal.ViewModel.{{ model_name }}>
 
+@if (Model == null || !Model.Any())
+{
+    <div class="empty-state text-center" style="padding: 70px 20px;">
+        <i class="fas fa-exclamation" style="font-size: 60px; color: #e5e7eb; margin-bottom: 18px;"></i>
+
+        <h4 style="color: #334155; margin-bottom: 6px;">
+            You're Quiet Here 🙂
+        </h4>
+
+        <p style="color: #64748b; max-width: 420px; margin: 0 auto;">
+            No {{ page_name|lower }} records found.
+            Click 'New {{ page_name }}' to get started.
+        </p>
+    </div>
+}
+else
+{
+
 <div class="table-responsive">
     <table id="datatable-buttons" class="table table-bordered dt-responsive nowrap" style="border-collapse: collapse; border-spacing: 0; width: 100%;">
         <thead style="">
@@ -46,3 +64,5 @@
         ]
     });
 </script>
+
+}

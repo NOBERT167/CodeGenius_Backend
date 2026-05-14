@@ -1,5 +1,30 @@
 @model IEnumerable<Latest_Staff_Portal.ViewModel.{{ model_name }}>
 
+@if (Model == null || !Model.Any())
+{
+    <div class="empty-state text-center" style="padding: 70px 20px;">
+        <i class="fas fa-exclamation" style="font-size: 60px; color: #e5e7eb; margin-bottom: 18px;"></i>
+
+        <h4 style="color: #334155; margin-bottom: 6px;">
+            No {{ page_name }} lines added yet
+        </h4>
+
+        @if (ViewBag.Status == "Open")
+        {
+            <p style="color: #64748b; max-width: 420px; margin: 0 auto;">
+                If you ever want to add lines this is a place to add.
+            </p>
+            <div style="text-align: center; margin-top: 10px">
+                <button class="btn btn-primary" style="color:whitesmoke; border-radius:10px" onclick="Add{{ page_name }}Line();">
+                    <i class="fa fa-plus-circle" aria-hidden="true"></i> Add Line
+                </button>
+            </div>
+        }
+    </div>
+}
+else
+{
+
 <div class="table-responsive">
     <table id="datatable-buttons" class="table table-bordered dt-responsive nowrap" style="border-collapse: collapse; border-spacing: 0; width: 100%;">
         <thead style="">
@@ -62,3 +87,5 @@
         ]
     });
 </script>
+
+}
