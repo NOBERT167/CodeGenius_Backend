@@ -8,6 +8,7 @@ from pathlib import Path
 
 from app.services.odata_parser import ODataParser
 from app.services.code_generator import CodeGeneratorWithFilters
+from app.services.ai_code_enhancer import AICodeEnhancer
 from app.models.request_model import (
     FullCodeRequest,
     LinesCodeRequest,
@@ -83,6 +84,7 @@ app = FastAPI(
 )
 
 code_gen = CodeGeneratorWithFilters()
+ai_enhancer = AICodeEnhancer()
 
 app.add_middleware(
     CORSMiddleware,
