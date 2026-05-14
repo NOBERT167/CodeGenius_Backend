@@ -28,16 +28,16 @@
                     <i class="fas fa-paper-plane" aria-hidden="true"></i> Update Header
                 </button>
             }
-            else
+            else if (Model.Status == "Pending Approval")
             {
-                <button class="action-buttons" onclick="ViewApprovalTrail('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
+                <button class="btn action-buttons" onclick="ViewApprovalTrail('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
                     <i class="fas fa-project-diagram menu-icon"></i> Approval Trail
                 </button>
                 <button class="btn btn-danger" onclick="CancelDocApprovalRequest('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
                     <i class="fas fa-times menu-icon"></i> Cancel Approval Request
                 </button>
             }
-            <button class="action-buttons" onclick="ViewDocComments('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
+            <button class="btn action-buttons" onclick="ViewDocComments('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}');">
                 <i class="fa fa-list-ol" aria-hidden="true"></i> Comments
             </button>
         </div>
@@ -47,7 +47,11 @@
             <div class="col-md-6">
                 <div class="form-group">
                     @Html.Label("{{ prop.display_name }}", htmlAttributes: new { @class = "control-label col-md-12" })
+                    {% if prop.type == 'DateTime' %}
+                    @Html.TextBoxFor(m => m.{{ prop.csharp_name }}, "{0:dd/MM/yyyy}", new { @class = "form-control", @readonly = "readonly", @style = "background-color:var(--light-gray)" })
+                    {% else %}
                     @Html.TextBoxFor(m => m.{{ prop.csharp_name }}, new { @class = "form-control", @readonly = "readonly", @style = "background-color:var(--light-gray)" })
+                    {% endif %}
                 </div>
             </div>{% endfor %}
         </div>
@@ -126,6 +130,43 @@
     </div>
 </div>
 
+<!-- Modal for adding/updating lines -->
+<div class="modal fade" id="linesModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content bg-white">
+            <div class="modal-header">
+                <h4 class="modal-title" id="labelF"></h4>
+                <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="linesModalBody">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger waves-effect " data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Comments Modal -->
+<div class="modal" id="commentsModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content bg-white">
+            <div class="modal-header">
+                <h4 class="modal-title">
+                    <label id="commentLabel"></label>
+                </h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="commentsModalBody">
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <script src="~/assets/js/ShowProgression.js"></script>
 <script type="text/javascript">
@@ -165,9 +206,9 @@
                 docNo: docNo
             },
             success: function (data) {
-                $("#modalBody").html(data);
+                $("#linesModalBody").html(data);
                 HideProgress();
-                $("#myModal").modal("show");
+                $("#linesModal").modal("show");
             },
             error: function (err) {
                 HideProgress();
@@ -201,7 +242,7 @@
                     success: function (data) {
                         HideProgress();
                         if (data.success) {
-                            $("#myModal").modal("hide");
+                            $("#linesModal").modal("hide");
                             Swal.fire('Success', data.message, 'success');
                             Load{{ page_name }}Lines('@Model.{{ primary_key.csharp_name if primary_key else 'No' }}', '@Model.Status');
                         } else {
@@ -269,6 +310,29 @@
         });
     };
 
+     var ViewDocComments = function (documentNumber) {
+     $("#commentLabel").text("Document Comments");
+     ShowProgress();
+     $.ajax({
+         async: true,
+         type: "POST",
+         datatype: "json",
+         data: JSON.stringify({ docNo: documentNumber }),
+         contentType: "application/json; charset = utf-8",
+         processData: false,
+         url: '/Common/DocumentApprovalComments',
+         success: function (data) {
+             $("#commentsModalBody").html(data);
+             HideProgress();
+             $("#commentsModal").modal("show");
+         },
+         error: function (err) {
+             HideProgress();
+             Swal.fire('Warning', err, 'warning');
+         }
+     });
+ }
+
     var Update{{ page_name }}Header = function (Code) {
         $("#labelF").text("Update {{ page_name }} header");
         ShowProgress();
@@ -332,10 +396,12 @@
             dataType: "json",
             success: function (data) {
                 HideProgress();
-                Swal.fire('Success', data.message, 'success')
-                    .then(function () {
-                        location.reload();
-                    });
+                if (data.success) {
+                    $("#updateModal").modal("hide");
+                    Swal.fire('Success', data.message, 'success')
+                        .then(function () {
+                            window.location.reload();
+                        });
                 } else {
                     Swal.fire('Warning', data.message, 'warning');
                 }

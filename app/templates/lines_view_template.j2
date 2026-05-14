@@ -17,7 +17,7 @@
                 foreach (var item in Model)
                 {
                     <tr>{% for prop in properties %}
-                        <td>@item.{{ prop.csharp_name }}</td>{% endfor %}
+                        <td>@{% if prop.type == 'DateTime' %}(item.{{ prop.csharp_name }}.ToShortDateString()){% else %}item.{{ prop.csharp_name }}{% endif %}</td>{% endfor %}
                         @if (ViewBag.Status == "Open")
                             {
                             <td>

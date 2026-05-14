@@ -1,0 +1,524 @@
+@{
+    ViewBag.Title = "{{ page_name }}";
+    Layout = "~/Views/Shared/Sitemaster.cshtml";
+}
+
+<!-- Header -->
+<div class="module-header">
+    <h1 class="module-title">
+        <i class="fas fa-file-invoice"></i>
+        {{ page_name }}
+    </h1>
+    <p class="module-subtitle">{{ page_name }} management and processing</p>
+</div>
+
+<!-- Breadcrumb -->
+<div class="page-header">
+    <div class="row">
+        <div class="col-sm-12">
+            <ul class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a href="#" onclick="{{ page_name }}Link();">
+                        <i class="fas fa-home"></i> Home
+                    </a>
+                </li>
+                <li class="breadcrumb-item active">
+                    <i class="fas fa-file-invoice"></i> {{ page_name }} Management
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+{% if filters_enabled %}
+<!-- Filter Section -->
+<div class="filter-section">
+    <div class="filter-header">
+        <h5><i class="fas fa-filter"></i> Filter {{ page_name }}s</h5>
+    </div>
+
+    <div class="filter-grid">
+        {% if date_filter %}
+        <div class="form-group-modern">
+            <label for="startDate" class="form-label-modern">
+                <i class="fas fa-calendar-alt"></i> Start Date
+            </label>
+            <input type="date" id="startDate" class="form-control-modern" />
+        </div>
+
+        <div class="form-group-modern">
+            <label for="endDate" class="form-label-modern">
+                <i class="fas fa-calendar-alt"></i> End Date
+            </label>
+            <input type="date" id="endDate" class="form-control-modern" />
+        </div>
+        {% endif %}
+
+        {% if status_filter %}
+        <div class="form-group-modern">
+            <label for="statusFilter" class="form-label-modern">
+                <i class="fas fa-flag"></i> {{ status_filter.display_name }}
+            </label>
+            <select id="statusFilter" class="form-control-modern">
+                {% if status_filter.options %}
+                {% for option in status_filter.options %}
+                <option value="{{ option.value }}">{{ option.text }}</option>
+                {% endfor %}
+                {% else %}
+                <option value="Open,Pending Approval">Open & Pending</option>
+                {% endif %}
+            </select>
+        </div>
+        {% endif %}
+
+        {% for custom_filter in custom_filters %}
+        <div class="form-group-modern">
+            <label for="{{ custom_filter.field_name|lower }}" class="form-label-modern">
+                <i class="fas fa-filter"></i> {{ custom_filter.display_name }}
+            </label>
+            {% if custom_filter.options %}
+            <select id="{{ custom_filter.field_name|lower }}" class="form-control-modern">
+                {% for option in custom_filter.options %}
+                <option value="{{ option.value }}">{{ option.text }}</option>
+                {% endfor %}
+            </select>
+            {% else %}
+            <input type="text" id="{{ custom_filter.field_name|lower }}" class="form-control-modern" />
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <div class="form-group-modern">
+            <label>&nbsp;</label>
+            <button class="btn-modern btn-primary-modern" onclick="load{{ page_name }}List();">
+                <i class="fas fa-search"></i> Load {{ page_name }}s
+            </button>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- {{ page_name }} Selection & Operations Section -->
+<div class="modern-card">
+    <div class="card-header-modern">
+        <h5 class="card-title-modern">
+            <i class="fas fa-tasks"></i> {{ page_name }} Operations
+        </h5>
+        <div class="btn-group">
+            <button class="btn-modern btn-success-modern" onclick="New{{ page_name }}();">
+                <i class="fas fa-plus"></i> New {{ page_name }}
+            </button>
+        </div>
+    </div>
+
+    <div class="card-body-modern">
+        {% if filters_enabled %}
+        <!-- Info Section -->
+        <div id="infoSection" class="info-section hidden">
+            <p id="infoText" class="info-text"></p>
+        </div>
+        {% endif %}
+
+        <!-- {{ page_name }} List -->
+        <div id="{{ page_name|lower }}ListContainer">
+            <div class="text-center" style="padding: 60px 20px;">
+                <i class="fas fa-file-invoice" style="font-size: 4rem; color: #dee2e6; margin-bottom: 20px;"></i>
+                <h5 style="color: #495057; margin-bottom: 10px;">No {{ page_name }}s Loaded</h5>
+                <p style="color: #6c757d;">{% if filters_enabled %}Please use the filter above to load {{ page_name|lower }}s.{% else %}Click the Load button to view {{ page_name|lower }}s.{% endif %}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- New {{ page_name }} Modal -->
+<div class="modal fade" id="new{{ page_name }}Modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">
+                    <i class="fas fa-plus"></i> New {{ page_name }}
+                </h4>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="new{{ page_name }}Content">
+                <!-- New {{ page_name }} form will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-modern btn-secondary-modern" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- {{ page_name }} Details Modal -->
+<div class="modal fade" id="{{ page_name|lower }}DetailsModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="detailsModalTitle">
+                    <i class="fas fa-info-circle"></i> {{ page_name }} Details
+                </h4>
+                <button type="button" class="close" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="{{ page_name|lower }}DetailsContent">
+                <!-- {{ page_name }} details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-modern btn-primary-modern" onclick="openSelectedDocument();">
+                    <i class="fas fa-external-link-alt"></i> Open Document
+                </button>
+                <button type="button" class="btn-modern btn-secondary-modern" data-dismiss="modal">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/assets/js/ShowProgression.js"></script>
+
+<script>
+    $(document).ready(function () {
+        initializePage();
+    });
+
+    function initializePage() {
+        {% if filters_enabled and date_filter %}
+        const today = new Date();
+        const yesterdayMorning = new Date(today.getTime() - (24 * 60 * 60 * 1000));
+
+        document.getElementById('startDate').value = formatDateForInput(yesterdayMorning);
+        document.getElementById('endDate').value = formatDateForInput(today);
+        {% endif %}
+
+        {% if filters_enabled and status_filter %}
+        loadStatusOptions();
+        {% endif %}
+
+        load{{ page_name }}List();
+    }
+
+    {% if filters_enabled and date_filter %}
+    function formatDateForInput(date) {
+        return date.toISOString().split('T')[0];
+    }
+    {% endif %}
+
+    {% if filters_enabled and status_filter %}
+    function loadStatusOptions() {
+        $.ajax({
+            url: '/{{ page_name }}/Get{{ page_name }}StatusOptions',
+            type: 'GET',
+            success: function (response) {
+                if (response.success) {
+                    const statusSelect = document.getElementById('statusFilter');
+                    statusSelect.innerHTML = '';
+                    response.statusOptions.forEach(function (option) {
+                        const optionElement = new Option(option.Text, option.Value);
+                        statusSelect.add(optionElement);
+                    });
+                }
+            },
+            error: function () {
+                console.error('Failed to load status options');
+            }
+        });
+    }
+    {% endif %}
+
+    function load{{ page_name }}List() {
+        {% if filters_enabled %}
+        const params = {};
+        {% if date_filter %}
+        params.startDate = document.getElementById('startDate').value;
+        params.endDate = document.getElementById('endDate').value;
+        {% endif %}
+        {% if status_filter %}
+        params.status = document.getElementById('statusFilter').value;
+        {% endif %}
+        {% for custom_filter in custom_filters %}
+        params.{{ custom_filter.field_name|lower }} = document.getElementById('{{ custom_filter.field_name|lower }}').value;
+        {% endfor %}
+        {% else %}
+        const params = {};
+        {% endif %}
+
+        const container = document.getElementById('{{ page_name|lower }}ListContainer');
+        container.innerHTML = `
+        <div class="text-center" style="padding: 60px 20px;">
+            <i class="fas fa-spinner fa-spin fa-2x text-muted"></i>
+            <p class="mt-3 text-muted">Loading {{ page_name|lower }}s...</p>
+        </div>
+    `;
+
+        $.ajax({
+            url: '/{{ page_name }}/Get{{ page_name }}List',
+            type: 'GET',
+            data: params,
+            success: function (response) {
+                if (response.success) {
+                    display{{ page_name }}List(response.{{ page_name|lower }}List);
+                    {% if filters_enabled %}
+                    updateInfoSection(response.filterInfo);
+                    {% endif %}
+                } else {
+                    container.innerHTML = `
+                    <div class="text-center" style="padding: 60px 20px;">
+                        <i class="fas fa-exclamation-triangle fa-2x text-warning"></i>
+                        <h5 class="mt-3 text-warning">Error Loading {{ page_name }}s</h5>
+                        <p class="text-muted">${response.message}</p>
+                    </div>
+                `;
+                    Swal.fire('Error', response.message, 'error');
+                }
+            },
+            error: function () {
+                container.innerHTML = `
+                <div class="text-center" style="padding: 60px 20px;">
+                    <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                    <h5 class="mt-3 text-danger">Connection Error</h5>
+                    <p class="text-muted">Failed to load {{ page_name|lower }}s. Please try again.</p>
+                </div>
+            `;
+                Swal.fire('Error', 'Failed to load {{ page_name|lower }}s. Please try again.', 'error');
+            }
+        });
+    }
+
+    function display{{ page_name }}List(items) {
+        const container = document.getElementById('{{ page_name|lower }}ListContainer');
+
+        if (!items || items.length === 0) {
+            container.innerHTML = `
+            <div class="text-center" style="padding: 60px 20px;">
+                <i class="fas fa-inbox fa-2x text-muted"></i>
+                <h5 class="mt-3 text-muted">No {{ page_name }}s Found</h5>
+                <p class="text-muted">No {{ page_name|lower }}s match the selected criteria.</p>
+            </div>
+        `;
+            return;
+        }
+
+        let tableHtml = `
+        <div class="modern-table">
+            <div class="table-responsive">
+                <table class="table" id="{{ page_name|lower }}Table">
+                    <thead>
+                        <tr>
+                            <th><i class="fas fa-mouse-pointer"></i> Action</th>
+                            {% for prop in datatable_properties %}
+                            <th><i class="fas fa-{{ prop.icon or 'info-circle' }}"></i> {{ prop.display_name }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+
+        items.forEach(function (item) {
+            {% if status_filter %}
+            const statusClass = getStatusClass(item.{{ status_filter.field_name }});
+            {% endif %}
+
+            tableHtml += `
+            <tr>
+                <td>
+                    <div class="btn-group">
+                        <button class="btn-modern btn-primary-modern" onclick="view{{ page_name }}Details('${item.{{ primary_key.csharp_name if primary_key else 'No' }}}')"
+                                title="View details">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                        <button class="btn-modern btn-info-modern" onclick="open{{ page_name }}Document('${item.{{ primary_key.csharp_name if primary_key else 'No' }}}')"
+                                title="Open document">
+                            <i class="fas fa-external-link-alt"></i> Open
+                        </button>
+                    </div>
+                </td>
+                {% for prop in datatable_properties %}
+                <td>
+                    {% if status_filter and prop.csharp_name == status_filter.field_name %}
+                    <span class="status-badge ${statusClass}">
+                        ${getStatusIcon(item.{{ prop.csharp_name }})} ${item.{{ prop.csharp_name }}}
+                    </span>
+                    {% else %}
+                    ${item.{{ prop.csharp_name }} || 'N/A'}
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+        `;
+        });
+
+        tableHtml += `
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+
+        container.innerHTML = tableHtml;
+
+        $('#{{ page_name|lower }}Table').DataTable({
+            pageLength: 10,
+            lengthMenu: [5, 10, 25, 50, 100],
+            order: [[1, 'desc']],
+            columnDefs: [
+                { orderable: false, targets: [0] }
+            ],
+            responsive: true,
+            language: {
+                lengthMenu: "Show _MENU_ {{ page_name|lower }}s per page",
+                zeroRecords: "No {{ page_name|lower }}s found",
+                info: "Showing _START_ to _END_ of _TOTAL_ {{ page_name|lower }}s",
+                infoEmpty: "No {{ page_name|lower }}s available",
+                infoFiltered: "(filtered from _MAX_ total {{ page_name|lower }}s)",
+                search: "Search {{ page_name|lower }}s:",
+            }
+        });
+    }
+
+    {% if filters_enabled and status_filter %}
+    function getStatusClass(status) {
+        switch (status?.toLowerCase()) {
+            case 'open': return 'status-open';
+            case 'pending approval': return 'status-pending';
+            case 'approved': return 'status-approved';
+            case 'rejected': return 'status-rejected';
+            default: return 'status-open';
+        }
+    }
+
+    function getStatusIcon(status) {
+        switch (status?.toLowerCase()) {
+            case 'open': return '<i class="fas fa-unlock"></i>';
+            case 'pending approval': return '<i class="fas fa-clock"></i>';
+            case 'approved': return '<i class="fas fa-check-circle"></i>';
+            case 'rejected': return '<i class="fas fa-times-circle"></i>';
+            default: return '<i class="fas fa-circle"></i>';
+        }
+    }
+    {% endif %}
+
+    {% if filters_enabled %}
+    function updateInfoSection(filterInfo) {
+        const infoSection = document.getElementById('infoSection');
+        const infoText = document.getElementById('infoText');
+
+        if (filterInfo) {
+            let filterHtml = '<strong><i class="fas fa-info-circle"></i> Filter Applied:</strong> ';
+            {% if date_filter %}
+            const startDate = new Date(filterInfo.startDate).toLocaleDateString();
+            const endDate = new Date(filterInfo.endDate).toLocaleDateString();
+            filterHtml += `Date Range: ${startDate} to ${endDate} | `;
+            {% endif %}
+            {% if status_filter %}
+            filterHtml += `Status: ${filterInfo.status} | `;
+            {% endif %}
+            filterHtml += `Found: ${filterInfo.recordCount} {{ page_name }}(s)`;
+
+            infoText.innerHTML = filterHtml;
+            infoSection.classList.remove('hidden');
+        } else {
+            infoSection.classList.add('hidden');
+        }
+    }
+    {% endif %}
+
+    let selectedDocumentNo = '';
+
+    function view{{ page_name }}Details(documentNo) {
+        selectedDocumentNo = documentNo;
+        ShowProgress();
+
+        $.ajax({
+            url: '/{{ page_name }}/Get{{ page_name }}Details',
+            type: 'GET',
+            data: { documentNo: documentNo },
+            success: function (response) {
+                if (response.success) {
+                    display{{ page_name }}Details(response.documentDetails);
+                } else {
+                    Swal.fire('Error', response.message, 'error');
+                }
+                HideProgress();
+            },
+            error: function () {
+                Swal.fire('Error', 'Could not load {{ page_name|lower }} details.', 'error');
+                HideProgress();
+            }
+        });
+    }
+
+    function display{{ page_name }}Details(details) {
+        const content = `
+        <div class="row">
+            <div class="col-12">
+                <h6><i class="fas fa-info-circle"></i> Document Information</h6>
+                <table class="table table-sm table-borderless">
+                    {% for prop in properties[:10] %}
+                    <tr>
+                        <td><strong>{{ prop.display_name }}:</strong></td>
+                        <td>${details.{{ prop.csharp_name }} || 'N/A'}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+    `;
+
+        document.getElementById('{{ page_name|lower }}DetailsContent').innerHTML = content;
+        document.getElementById('detailsModalTitle').innerHTML = `
+        <i class="fas fa-file-invoice"></i> {{ page_name }} Details - ${details.{{ primary_key.csharp_name if primary_key else 'No' }}}
+    `;
+        $('#{{ page_name|lower }}DetailsModal').modal('show');
+    }
+
+    function openSelectedDocument() {
+        if (selectedDocumentNo) {
+            open{{ page_name }}Document(selectedDocumentNo);
+            $('#{{ page_name|lower }}DetailsModal').modal('hide');
+        }
+    }
+
+    function open{{ page_name }}Document(documentNo) {
+        var form = $('<form>', {
+            action: '/{{ page_name }}/{{ page_name }}Document',
+            method: 'POST'
+        }).append($('<input>', {
+            type: 'hidden',
+            name: 'DocNo',
+            value: documentNo
+        }));
+        form.appendTo('body').submit();
+    }
+
+    function New{{ page_name }}() {
+        ShowProgress();
+        $.ajax({
+            async: true,
+            type: "POST",
+            datatype: "json",
+            contentType: "application/json; charset = utf-8",
+            processData: false,
+            url: "/{{ page_name }}/New{{ page_name }}",
+            success: function (data) {
+                $("#new{{ page_name }}Content").html(data);
+                HideProgress();
+                $("#new{{ page_name }}Modal").modal("show");
+            },
+            error: function (err) {
+                HideProgress();
+                Swal.fire('Warning', err, 'warning');
+            }
+        });
+    }
+
+    function {{ page_name }}Link() {
+        window.history.back();
+    }
+</script>

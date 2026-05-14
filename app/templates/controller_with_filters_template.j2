@@ -29,12 +29,186 @@ namespace Latest_Staff_Portal.Controllers
             }
         }
 
+        {% if filters_enabled %}
+        public JsonResult Get{{ page_name }}List({% if date_filter %}string startDate = null, string endDate = null, {% endif %}{% if status_filter %}string status = null{% endif %}{% for custom_filter in custom_filters %}, string {{ custom_filter.field_name|lower }} = null{% endfor %})
+        {
+            try
+            {
+                var employee = Session["EmployeeData"] as EmployeeView;
+                var userId = employee?.UserID;
+                var role = Session["ESSRoleSetup"] as ESSRoleSetup;
+                var dimension1 = employee?.GlobalDimension1Code;
+                var {{ page_name|lower }}List = new List<{{ model_name }}>();
+
+                {% if date_filter %}
+                var (filterStartDate, filterEndDate) = GetDefaultDateRange(startDate, endDate);
+                {% endif %}
+                {% if status_filter %}
+                var filterStatus = status ?? "{{ status_filter.default_value or 'Open' }}";
+                {% endif %}
+
+                var filters = new List<string>();
+
+                // Role-based filtering
+                {% for user_filter in user_filter_fields %}
+                {% if loop.first %}
+                if (role != null && (role.Station_Accountant || role.HQ_Accountant))
+                {
+                    filters.Add($"Global_Dimension_1_Code eq '{dimension1}'");
+                }
+                else
+                {
+                    filters.Add($"{{ user_filter.original_name }} eq '{userId}'");
+                }
+                {% endif %}
+                {% endfor %}
+
+                {% if date_filter %}
+                // Date filters
+                if (!string.IsNullOrEmpty(filterStartDate))
+                {
+                    filters.Add($"{{ date_filter.field_name }} ge {filterStartDate}");
+                }
+                if (!string.IsNullOrEmpty(filterEndDate))
+                {
+                    filters.Add($"{{ date_filter.field_name }} le {filterEndDate}");
+                }
+                {% endif %}
+
+                {% if status_filter %}
+                // Status filter
+                if (!string.IsNullOrEmpty(filterStatus))
+                {
+                    if (filterStatus == "Open,Pending Approval") // Combined status
+                    {
+                        filters.Add("({{ status_filter.field_name }} eq 'Open' or {{ status_filter.field_name }} eq 'Pending Approval')");
+                    }
+                    else
+                    {
+                        filters.Add($"{{ status_filter.field_name }} eq '{filterStatus}'");
+                    }
+                }
+                {% endif %}
+
+                {% for custom_filter in custom_filters %}
+                // Custom filter: {{ custom_filter.display_name }}
+                if (!string.IsNullOrEmpty({{ custom_filter.field_name|lower }}))
+                {
+                    filters.Add("{{ custom_filter.field_name }} eq '" + {{ custom_filter.field_name|lower }} + "'");
+                }
+                {% endfor %}
+
+                var combinedFilter = string.Join(" and ", filters);
+                var selectFields = "{{ datatable_properties|map(attribute='original_name')|join(',') }}";
+                var page = $"{{ entity_name }}?$filter={combinedFilter}&$select={selectFields}&$orderby={{ date_filter.field_name if date_filter else 'No' }} desc&$format=json";
+
+                var httpResponse = Credentials.GetOdataData(page);
+                using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+                {
+                    var result = streamReader.ReadToEnd();
+                    var details = JObject.Parse(result);
+
+                    foreach (JObject config in details["value"])
+                    {
+                        var item = new {{ model_name }}();
+                        {% for prop in datatable_properties %}
+                        item.{{ prop.csharp_name }} = {% if prop.type == 'DateTime' %}ParseAndFormatDate(GetStringValue(config, "{{ prop.original_name }}")){% else %}GetStringValue(config, "{{ prop.original_name }}"){% endif %};
+                        {% endfor %}
+                        {{ page_name|lower }}List.Add(item);
+                    }
+                }
+
+                return Json(new
+                {
+                    success = true,
+                    {{ page_name|lower }}List = {{ page_name|lower }}List,
+                    filterInfo = new
+                    {
+                        {% if date_filter %}
+                        startDate = filterStartDate,
+                        endDate = filterEndDate,
+                        {% endif %}
+                        {% if status_filter %}
+                        status = filterStatus,
+                        {% endif %}
+                        recordCount = {{ page_name|lower }}List.Count
+                    }
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message.Replace("'", "")
+                }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        {% if date_filter %}
+        private (string, string) GetDefaultDateRange(string startDate, string endDate)
+        {
+            var defaultStart = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd");
+            var defaultEnd = DateTime.Now.ToString("yyyy-MM-dd");
+
+            return (startDate ?? defaultStart, endDate ?? defaultEnd);
+        }
+        {% endif %}
+
+        {% if status_filter %}
+        public JsonResult Get{{ page_name }}StatusOptions()
+        {
+            try
+            {
+                var statusOptions = new List<SelectListItem>
+                {
+                    {% if status_filter.options %}
+                    {% for option in status_filter.options %}
+                    new() { Text = "{{ option.text }}", Value = "{{ option.value }}" }{% if not loop.last %},{% endif %}
+                    {% endfor %}
+                    {% else %}
+                    new() { Text = "Open", Value = "Open" },
+                    new() { Text = "Pending Approval", Value = "Pending Approval" },
+                    new() { Text = "Approved", Value = "Approved" },
+                    new() { Text = "Open & Pending", Value = "Open,Pending Approval" }
+                    {% endif %}
+                };
+
+                return Json(new { success = true, statusOptions }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message.Replace("'", "") }, JsonRequestBehavior.AllowGet);
+            }
+        }
+        {% endif %}
+
+        private string GetStringValue(JObject config, string fieldName)
+        {
+            try
+            {
+                return config[fieldName]?.ToString() ?? "";
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        private string ParseAndFormatDate(string dateString)
+        {
+            if (DateTime.TryParse(dateString, out DateTime date))
+            {
+                return date.ToString("yyyy-MM-dd");
+            }
+            return dateString;
+        }
+        {% else %}
         public PartialViewResult {{ page_name }}List()
         {
             try
             {
                 var employee = Session["EmployeeData"] as EmployeeView;
-                // Auto-detected user filter fields: {{ user_filter_fields|map(attribute='original_name')|join(', ') }}
                 var userId = employee?.UserID;
                 var StaffNo = Session["Username"].ToString();
 
@@ -57,6 +231,7 @@ namespace Latest_Staff_Portal.Controllers
                 return PartialView("~/Views/Common/ErrorMessange.cshtml", erroMsg);
             }
         }
+        {% endif %}
 
         public ActionResult {{ page_name }}DocumentView(string code)
         {
@@ -65,7 +240,6 @@ namespace Latest_Staff_Portal.Controllers
                 {% if primary_key %}
                 var rsrceReq = $"{{ entity_name }}?$filter={{ primary_key.original_name }} eq '{code}'&$format=json";
                 {% else %}
-                // WARNING: No primary key detected, using 'No' as default
                 var rsrceReq = $"{{ entity_name }}?$filter=No eq '{code}'&$format=json";
                 {% endif %}
                 var httpResponse = Credentials.GetOdataData(rsrceReq);
@@ -89,7 +263,6 @@ namespace Latest_Staff_Portal.Controllers
             }
         }
 
-        // Method to create new document form
         public PartialViewResult New{{ page_name }}()
         {
             try
@@ -108,7 +281,6 @@ namespace Latest_Staff_Portal.Controllers
             }
         }
 
-        // Method to submit new document
         public JsonResult Submit{{ page_name }}({{ model_name }} viewModel)
         {
             try
@@ -124,10 +296,7 @@ namespace Latest_Staff_Portal.Controllers
                 }
 
                 // TODO: REPLACE WITH YOUR BUSINESS CENTRAL FUNCTION
-                // var docNo = Credentials.ObjNav.FnCreate{{ page_name }}(UserID, viewModel.Property1, viewModel.Property2);
-                // Example: var docNo = Credentials.ObjNav.FnCreate{{ page_name }}(UserID, viewModel.PaymentNarration);
-
-                string docNo = "DOC001"; // Replace with actual BC function call
+                string docNo = "DOC001";
 
                 return Json(new { message = "{{ page_name }} created successfully", docNo = docNo, success = true },
                     JsonRequestBehavior.AllowGet);
@@ -139,7 +308,6 @@ namespace Latest_Staff_Portal.Controllers
             }
         }
 
-        // TODO: Replace Credentials.ObjNav with your actual Business Central function
         public JsonResult Submit{{ page_name }}ApprovalRequest(string docNo)
         {
             try
@@ -147,9 +315,7 @@ namespace Latest_Staff_Portal.Controllers
                 var employee = Session["EmployeeData"] as EmployeeView;
                 var UserID = employee?.UserID;
 
-                // REPLACE WITH YOUR BUSINESS CENTRAL FUNCTION:
-                // Credentials.ObjNav.Send{{ page_name }}ForApproval(docNo, UserID);
-                // Credentials.ObjNav.UpdateApprovalEntrySenderID(57000, docNo, UserID);
+                // REPLACE WITH YOUR BUSINESS CENTRAL FUNCTION
 
                 return Json(new { message = "Document submitted for approval successfully!", success = true },
                     JsonRequestBehavior.AllowGet);
@@ -161,7 +327,6 @@ namespace Latest_Staff_Portal.Controllers
             }
         }
 
-        // TODO: Replace Credentials.ObjNav with your actual Business Central function
         public JsonResult Cancel{{ page_name }}ApprovalRequest(string docNo)
         {
             try
@@ -175,8 +340,7 @@ namespace Latest_Staff_Portal.Controllers
                         JsonRequestBehavior.AllowGet);
                 }
 
-                // REPLACE WITH YOUR BUSINESS CENTRAL FUNCTION:
-                // Credentials.ObjNav.FnCancel{{ page_name }}Approval(docNo, UserID);
+                // REPLACE WITH YOUR BUSINESS CENTRAL FUNCTION
 
                 return Json(new { message = "Approval Request cancelled successfully", success = true },
                     JsonRequestBehavior.AllowGet);
@@ -188,7 +352,6 @@ namespace Latest_Staff_Portal.Controllers
             }
         }
 
-        // Method to open update header form
         public PartialViewResult Update{{ page_name }}Header(string docNo)
         {
             try
@@ -228,7 +391,6 @@ namespace Latest_Staff_Portal.Controllers
             }
         }
 
-        // Method to submit updated header
         public JsonResult SubmitUpdated{{ page_name }}header({{ model_name }} viewModel)
         {
             try
@@ -244,83 +406,12 @@ namespace Latest_Staff_Portal.Controllers
                 }
 
                 // TODO: REPLACE WITH YOUR BUSINESS CENTRAL UPDATE FUNCTION
-                // Example: var success = Credentials.ObjNav.FnUpdate{{ page_name }}(viewModel.No, viewModel.Property1, viewModel.Property2, UserID);
-                // Example: var success = Credentials.ObjNav.Update{{ page_name }}(viewModel.{{ primary_key.csharp_name if primary_key else 'No' }}, viewModel.Field1, viewModel.Field2);
-
-                bool success = true; // Placeholder - replace with actual BC function call
+                bool success = true;
 
                 return Json(new {
                     message = success ? "{{ page_name }} header updated successfully" : "Failed to update {{ page_name }} header",
                     success = success
                 }, JsonRequestBehavior.AllowGet);
-            }
-            catch (Exception ex)
-            {
-                return Json(new { message = ex.Message.Replace("'", ""), success = false },
-                    JsonRequestBehavior.AllowGet);
-            }
-        }
-
-        // LINES SECTION - UNCOMMENT AND IMPLEMENT WHEN LINES ARE NEEDED
-        /*
-        public PartialViewResult {{ page_name }}Lines(string docNo, string status)
-        {
-            try
-            {
-                ViewBag.Status = status;
-                // Use the detected primary key for filtering
-                {% if primary_key %}
-                var rsrceReq = $"{{ entity_name }}?$filter={{ primary_key.original_name }} eq '{docNo}'&$format=json";
-                {% else %}
-                // WARNING: No primary key detected, using 'Document_No' as default
-                var rsrceReq = $"{{ entity_name }}?$filter=Document_No eq '{docNo}'&$format=json";
-                {% endif %}
-
-                var httpResponse = Credentials.GetOdataData(rsrceReq);
-
-                using var streamReader = new StreamReader(httpResponse.GetResponseStream());
-                var result = streamReader.ReadToEnd();
-
-                var odataResponse = JsonConvert.DeserializeObject<ODataResponse<{{ model_name }}>>(result);
-                var lines = odataResponse?.Value ?? [];
-
-                return PartialView("PartialViews/{{ page_name }}Lines", lines);
-            }
-            catch (Exception ex)
-            {
-                var erroMsg = new Error();
-                erroMsg.Message = ex.Message.Replace("'", "");
-                return PartialView("~/Views/Shared/Partial Views/ErroMessangeView.cshtml", erroMsg);
-            }
-        }
-        */
-
-         // Line management methods
-        public PartialViewResult Add{{ page_name }}Line()
-        {
-            try
-            {
-                // Return partial view for adding lines
-                // You might want to create a separate view model for lines
-                return PartialView("PartialViews/Add{{ page_name }}Line");
-            }
-            catch (Exception ex)
-            {
-                var erroMsg = new Error();
-                erroMsg.Message = ex.Message;
-                return PartialView("~/Views/Shared/Partial Views/ErroMessangeView.cshtml", erroMsg);
-            }
-        }
-
-        public JsonResult Delete{{ page_name }}Line(string code, string lineNo)
-        {
-            try
-            {
-                // TODO: REPLACE WITH YOUR BUSINESS CENTRAL FUNCTION
-                // Credentials.ObjNav.FnDelete{{ page_name }}Lines(Convert.ToInt32(lineNo), code);
-
-                return Json(new { message = "Line deleted successfully", success = true },
-                    JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {

@@ -19,7 +19,7 @@
                                 <i class="fa fa-eye"></i> View
                             </button>
                         </td>{% for prop in datatable_properties %}
-                        <td>@item.{{ prop.csharp_name }}</td>{% endfor %}
+                        <td>@{% if prop.type == 'DateTime' %}(item.{{ prop.csharp_name }}.ToShortDateString()){% else %}item.{{ prop.csharp_name }}{% endif %}</td>{% endfor %}
                     </tr>
                 }
             }

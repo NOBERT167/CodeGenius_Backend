@@ -51,7 +51,7 @@ var Submit{{ page_name }} = function () {
             HideProgress();
             if (data.success) {
                 $("#myModal").modal("hide");
-                Swal.fire('Success', data.message, 'success");
+                Swal.fire('Success', data.message, 'success');
                 if (data.docNo) {
                     View{{ page_name }}Doc(data.docNo);
                 } else {
