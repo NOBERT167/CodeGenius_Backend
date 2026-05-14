@@ -1,8 +1,8 @@
 {
-  "full_generations": 0,
-  "lines_generations": 0,
-  "function_header_generations": 0,
-  "function_line_generations": 1,
-  "total_generations": 1,
-  "total_files_generated": 4
+  "full_generations": 231,
+  "lines_generations": 1225,
+  "function_header_generations": 276,
+  "function_line_generations": 957,
+  "total_generations": 2689,
+  "total_files_generated": 985
 }

@@ -5,11 +5,7 @@
     <div class="col-md-6">
         <div class="form-group">
             @Html.Label("{{ param.display_name }}", htmlAttributes: new { @class = "control-label col-md-12" })
-            {% if param.type == 'DateTime' %}
-            <input type="text" class="form-control" placeholder="dd/mm/yyyy" id="{{ param.name }}" onkeydown="return false;" autocomplete="off" />
-            {% else %}
-            @Html.EditorFor(model => model.{{ param.csharp_name }}, new { htmlAttributes = new { @class = "form-control", @id = "{{ param.name }}" } })
-            {% endif %}
+            {% if param.type == 'DateTime' %}<input type="text" class="form-control" placeholder="dd/mm/yyyy" id="{{ param.name }}" onkeydown="return false;" autocomplete="off" />{% else %}@Html.EditorFor(model => model.{{ param.csharp_name }}, new { htmlAttributes = new { @class = "form-control", @id = "{{ param.name }}" } }){% endif %}
         </div>
     </div>
 {% endif %}{% endfor %}
