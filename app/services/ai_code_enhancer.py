@@ -27,7 +27,7 @@ _FUNCTION_SECTION_LABELS = {
 # Rich project context injected into every function-code AI call so the AI
 # understands the codebase conventions without needing extra explanation.
 _PROJECT_CONTEXT = """
-PROJECT CONTEXT — ASP.NET MVC 5 + Microsoft Dynamics NAV / Business Central:
+PROJECT CONTEXT — ASP.NET MVC 5 + Microsoft Dynamics Business Central:
 
 1. OData Data Access Pattern:
    All OData calls use Credentials.GetOdataData(endpoint) which returns an HttpWebResponse.
@@ -69,11 +69,11 @@ PROJECT CONTEXT — ASP.NET MVC 5 + Microsoft Dynamics NAV / Business Central:
    Then:
      a) Do NOT render that field as a form input in the view (no TextBoxFor / DropDownListFor).
      b) In the controller POST action, read the value from session (as above)
-        and pass it directly as a parameter to the NAV/BC function call.
+        and pass it directly as a parameter to the BC function call.
      c) Remove any corresponding ViewModel property that would just duplicate session data.
 
-3. NAV / BC Enum (Static) Dropdowns:
-   NAV enum option values are integers, typically starting from 0 OR from 1 (developer choice).
+3. BC Enum (Static) Dropdowns:
+   BC enum option values are integers, typically starting from 0 OR from 1 (developer choice).
    Build the list inline:
 
        viewModel.SeverityList = new SelectList(new List<SelectListItem>
