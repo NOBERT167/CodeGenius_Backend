@@ -103,7 +103,7 @@ class AICodeEnhancer:
 
     def __init__(self):
         self.api_key = os.getenv("OPENAI_API_KEY")
-        self.default_model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+        self.default_model = os.getenv("OPENAI_MODEL", "gpt-5.4")
         self.base_url = os.getenv("OPENAI_BASE_URL")
 
     def is_available(self) -> bool:
